@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="UpKeep Gauge">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<title>UpKeep Gauge</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    color-scheme: light dark;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-2: #f0efec;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --ink-3: #898781;
+    --hairline: rgba(11,11,11,0.10);
+    --grid: #e1e0d9;
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warning: #fab219;
+    --warning-text: #7a5200;
+    --serious: #ec835a;
+    --serious-text: #8f3c17;
+    --critical: #d03b3b;
+    --critical-text: #b02a2a;
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --shadow: 0 1px 3px rgba(11,11,11,0.06), 0 4px 14px rgba(11,11,11,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #262624;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --ink-3: #898781;
+      --hairline: rgba(255,255,255,0.10);
+      --grid: #2c2c2a;
+      --good: #0ca30c;
+      --good-text: #4cc94c;
+      --warning: #fab219;
+      --warning-text: #fab219;
+      --serious: #ec835a;
+      --serious-text: #ec835a;
+      --critical: #d03b3b;
+      --critical-text: #e66767;
+      --accent: #3987e5;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 0 16px; }
+
+  header.app {
+    padding-top: calc(20px + env(safe-area-inset-top));
+    padding-bottom: 4px;
+  }
+  .app-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+  .logo-img { width: 38px; height: 38px; border-radius: 10px; flex: none; }
+  .today { font-size: 13px; color: var(--ink-3); white-space: nowrap; }
+  .subtitle { font-size: 13.5px; color: var(--ink-2); margin-top: 4px; }
+  .subtitle b { color: var(--ink); font-weight: 700; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 4px; }
+  .stat {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 14px;
+    padding: 10px 6px 9px; text-align: center; cursor: pointer; transition: transform .08s;
+  }
+  .stat:active { transform: scale(0.97); }
+  .stat .n { font-size: 22px; font-weight: 700; line-height: 1.1; }
+  .stat .l { font-size: 10.5px; color: var(--ink-2); margin-top: 2px; letter-spacing: 0.01em; }
+  .stat.sel { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .stat .n.crit { color: var(--critical-text); }
+  .stat .n.warn { color: var(--warning-text); }
+  .stat .n.ok { color: var(--good-text); }
+
+  .chips { display: flex; gap: 7px; overflow-x: auto; padding: 12px 0 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; font-size: 13px; font-weight: 600; padding: 7px 13px; border-radius: 999px;
+    background: var(--surface); color: var(--ink-2); border: 1px solid var(--hairline); cursor: pointer;
+  }
+  .chip.sel { background: var(--ink); color: var(--page); border-color: var(--ink); }
+
+  .segs { display: flex; background: var(--surface-2); border-radius: 13px; padding: 3px; margin-top: 14px; gap: 2px; }
+  .seg {
+    flex: 1; border: none; background: none; font-family: inherit; font-size: 13px; font-weight: 600;
+    color: var(--ink-2); padding: 9px 2px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  }
+  .seg.sel { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+  #landing { margin-top: 10px; }
+  .land-card {
+    display: flex; align-items: center; gap: 14px; background: var(--surface);
+    border: 1px solid var(--hairline); border-radius: 18px; padding: 18px 16px;
+    margin-top: 12px; cursor: pointer; box-shadow: var(--shadow); transition: transform .08s;
+  }
+  .land-card:active { transform: scale(0.98); }
+  .land-emoji {
+    width: 52px; height: 52px; border-radius: 15px; background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center; font-size: 27px; flex: none;
+  }
+  .land-t { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  .land-sub { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+  .land-sub .crit { color: var(--critical-text); font-weight: 700; }
+  .land-sub .warn { color: var(--warning-text); font-weight: 700; }
+  .land-arrow { margin-left: auto; color: var(--ink-3); font-size: 24px; flex: none; }
+  .back-btn {
+    margin-top: 12px; background: none; border: none; color: var(--accent);
+    font-family: inherit; font-size: 15px; font-weight: 600; padding: 6px 0; cursor: pointer;
+  }
+
+  .video-btn {
+    display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 10px;
+    padding: 13px; border-radius: 13px; background: var(--surface); border: 1px solid var(--hairline);
+    color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: none;
+  }
+  .video-btn .yt {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 17px; border-radius: 5px; background: #f00; color: #fff; font-size: 9px;
+  }
+
+  .group-h { display: flex; align-items: baseline; justify-content: space-between; margin: 20px 0 8px; }
+  .group-h h2 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .group-h .count { font-size: 12px; color: var(--ink-3); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px;
+    padding: 13px 14px; margin-bottom: 9px; cursor: pointer; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 12px; transition: transform .08s;
+  }
+  .card:active { transform: scale(0.985); }
+  .card .emoji {
+    flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .card .mid { flex: 1; min-width: 0; }
+  .card .t { font-size: 15px; font-weight: 600; line-height: 1.25; }
+  .card .meta { font-size: 12px; color: var(--ink-2); margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .badge {
+    flex: none; font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+  }
+  .badge.overdue { background: color-mix(in srgb, var(--critical) 14%, var(--surface)); color: var(--critical-text); }
+  .badge.soon    { background: color-mix(in srgb, var(--warning) 20%, var(--surface)); color: var(--warning-text); }
+  .badge.ok      { background: color-mix(in srgb, var(--good) 13%, var(--surface)); color: var(--good-text); }
+  .badge.never   { background: var(--surface-2); color: var(--ink-2); }
+
+  .empty { text-align: center; color: var(--ink-3); font-size: 14px; padding: 40px 20px; }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50;
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--page); width: 100%; max-width: 680px; max-height: 92vh; max-height: 92dvh;
+    border-radius: 22px 22px 0 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 10px 18px calc(24px + env(safe-area-inset-bottom));
+    animation: up .22s ease-out;
+  }
+  @keyframes up { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+  .grab { width: 38px; height: 4px; border-radius: 2px; background: var(--grid); margin: 4px auto 14px; }
+  .sheet-head { display: flex; gap: 12px; align-items: flex-start; }
+  .sheet-head .emoji { width: 46px; height: 46px; border-radius: 14px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 24px; flex: none; }
+  .sheet h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+  .sheet .freq-line { font-size: 13px; color: var(--ink-2); margin-top: 3px; }
+  .close-x {
+    margin-left: auto; flex: none; width: 32px; height: 32px; border-radius: 50%; border: none;
+    background: var(--surface-2); color: var(--ink-2); font-size: 16px; cursor: pointer;
+  }
+  .status-strip { margin: 14px 0 0; padding: 11px 13px; border-radius: 13px; font-size: 13.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .status-strip.overdue { background: color-mix(in srgb, var(--critical) 13%, var(--surface)); color: var(--critical-text); }
+  .status-strip.soon { background: color-mix(in srgb, var(--warning) 20%, var(--surface)); color: var(--warning-text); }
+  .status-strip.ok { background: color-mix(in srgb, var(--good) 13%, var(--surface)); color: var(--good-text); }
+  .status-strip.never { background: var(--surface-2); color: var(--ink-2); }
+
+  .sec { margin-top: 18px; }
+  .sec h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-3); margin-bottom: 8px; }
+  .why { font-size: 14px; line-height: 1.5; color: var(--ink-2); background: var(--surface); border: 1px solid var(--hairline); border-radius: 13px; padding: 12px 14px; }
+  .supplies { background: var(--surface); border: 1px solid var(--hairline); border-radius: 13px; padding: 6px 14px; }
+  .supply { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 14px; border-bottom: 1px solid var(--grid); }
+  .supply:last-child { border-bottom: none; }
+  .supply input { width: 19px; height: 19px; accent-color: var(--accent); flex: none; }
+  .supply label { flex: 1; }
+  .supply input:checked + label { color: var(--ink-3); text-decoration: line-through; }
+  .steps { background: var(--surface); border: 1px solid var(--hairline); border-radius: 13px; padding: 4px 14px; counter-reset: st; list-style: none; }
+  .steps li { counter-increment: st; display: flex; gap: 11px; padding: 10px 0; font-size: 14px; line-height: 1.5; border-bottom: 1px solid var(--grid); }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(st); flex: none; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface-2); color: var(--ink-2); font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .tip { font-size: 13px; line-height: 1.5; color: var(--ink-2); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border-radius: 13px; padding: 11px 14px; margin-top: 10px; }
+  .tip b { color: var(--ink); }
+
+  .history { font-size: 13.5px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--hairline); border-radius: 13px; padding: 6px 14px; }
+  .history .h-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--grid); }
+  .history .h-row:last-child { border-bottom: none; }
+  .history .h-none { padding: 10px 0; }
+
+  .actions { position: sticky; bottom: 0; margin-top: 20px; display: flex; flex-direction: column; gap: 9px; background: var(--page); padding-top: 8px; }
+  .btn {
+    width: 100%; padding: 15px; border-radius: 14px; border: none; font-size: 16px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn.primary { background: var(--good); color: #fff; }
+  .btn.primary:active { filter: brightness(0.92); }
+  .btn.ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--hairline); font-weight: 600; font-size: 14px; padding: 12px; }
+  .btn.danger-ghost { background: none; border: none; color: var(--critical-text); font-size: 13px; font-weight: 600; padding: 8px; }
+  .date-row { display: none; gap: 9px; }
+  .date-row.open { display: flex; }
+  .date-row input[type=date] {
+    flex: 1; padding: 12px; border-radius: 14px; border: 1px solid var(--hairline);
+    background: var(--surface); color: var(--ink); font-family: inherit; font-size: 15px;
+  }
+  .date-row .btn { width: auto; padding: 12px 18px; }
+
+  footer.app { margin-top: 28px; text-align: center; }
+  footer.app .frow { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
+  footer.app button {
+    background: var(--surface); border: 1px solid var(--hairline); color: var(--ink-2);
+    border-radius: 999px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  footer.app .note { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(30px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--page); font-size: 14px; font-weight: 600;
+    padding: 11px 18px; border-radius: 999px; opacity: 0; pointer-events: none;
+    transition: all .25s; z-index: 99; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (min-width: 560px) {
+    .overlay { align-items: center; }
+    .sheet { border-radius: 22px; max-height: 86vh; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div class="app-title-row">
+      <h1><img class="logo-img" id="logoImg" alt="UpKeep Gauge logo">UpKeep Gauge</h1>
+      <span class="today" id="todayLabel"></span>
+    </div>
+    <div class="subtitle"><b>Sid</b> — keeping the home, cars &amp; health on schedule, all in one place.</div>
+  </header>
+  <div id="landing"></div>
+  <div id="listView" style="display:none">
+    <button class="back-btn" id="backBtn">‹ Categories</button>
+    <div class="segs" id="segs"></div>
+    <div class="stats" id="stats"></div>
+    <div class="chips" id="chips"></div>
+    <main id="list"></main>
+  </div>
+  <footer class="app">
+    <div class="frow">
+      <button id="exportBtn">⬇︎ Backup data</button>
+      <button id="importBtn">⬆︎ Restore</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+    </div>
+    <div class="note">Progress is saved automatically on this device.<br>Back up occasionally, and before switching devices.</div>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ============================== TASK CATALOG ============================== */
+const AREAS = {
+  hvac:      { name: 'HVAC',       emoji: '🌀' },
+  plumbing:  { name: 'Plumbing',   emoji: '🚿' },
+  appliance: { name: 'Appliances', emoji: '🧺' },
+  safety:    { name: 'Safety',     emoji: '🔥' },
+  garage:    { name: 'Garage',     emoji: '🚪' },
+  general:   { name: 'General',    emoji: '🏠' },
+  auto:      { name: 'Car',        emoji: '🚗' },
+  health:    { name: 'Health',     emoji: '❤️' },
+  security:  { name: 'Security',   emoji: '🔒' },
+};
+
+const TASKS = [
+/* ------------------------------- MONTHLY -------------------------------- */
+{ id:'hvac-filters', months:1, area:'hvac', time:'10 min',
+  title:'Check / replace HVAC filters (both units)',
+  why:'Dirty filters are the #1 cause of AC breakdowns and high energy bills. With 2 units you have 2 filters (at the air handlers or return grilles). Check monthly; replace when gray/clogged — typically every 1–3 months.',
+  supplies:['2 replacement filters (write your sizes here after checking, e.g. 16×25×1)','MERV 8–11 rating (higher traps more, but check your system allows it)','Marker to date the new filter'],
+  steps:['Turn the thermostat/system OFF for each unit.','Locate each filter: in the return-air grille (wall/ceiling) or the slot on the air handler (attic or closet).','Slide the old filter out and hold it up to a light. If you can\'t see light through it, replace it.','Note the size printed on the frame (buy multi-packs of that size).','Insert the new filter with the airflow arrow pointing toward the unit/duct, away from the room.','Write today\'s date on the filter edge with a marker.','Turn the system back on. Repeat for the second unit.'],
+  tip:'Buy a 6- or 12-pack of each size so a spare is always on the shelf. Pets or allergies? Replace monthly instead of just checking.' },
+
+{ id:'leak-walk', months:1, area:'plumbing', time:'10 min',
+  title:'Leak walk-through (sinks, toilets, water heater, laundry)',
+  why:'Small leaks cause slow, expensive damage — and in a townhome a leak can damage your neighbor\'s unit too. A 10-minute monthly walk catches drips while they\'re still a $5 fix.',
+  supplies:['Flashlight','Dry paper towel (wipe fittings — a wet towel reveals slow drips)'],
+  steps:['Open every under-sink cabinet (kitchen + all baths). Shine the light on the P-trap, supply valves, and cabinet floor. Wipe fittings with a dry towel to spot slow seeps.','Check around the base of each toilet for dampness, and listen for running/hissing after the tank fills.','Look at the water heater: any water in the drain pan, rust streaks, or dampness at fittings?','Check washing machine hoses and the floor behind the washer.','Check the fridge water line area (baseboard behind fridge, if reachable) and the dishwasher kick plate area.','Look at ceilings below bathrooms for new stains.'],
+  tip:'Found dampness you can\'t trace? Lay a dry paper towel under the suspect fitting and re-check the next day.' },
+
+{ id:'disposal-drains', months:1, area:'plumbing', time:'15 min',
+  title:'Freshen garbage disposal & flush drains',
+  why:'Grease film and food residue build odors and slow drains. Regular flushing keeps the disposal blades clean and prevents clogs in seldom-used drains.',
+  supplies:['Ice cubes (a dozen)','Coarse salt (½ cup)','Baking soda (1 cup) + white vinegar (1 cup)','Lemon or citrus peels (optional)'],
+  steps:['Run cold water, feed a tray of ice cubes and ½ cup coarse salt into the disposal, and run it until clear — this scours the grinding chamber.','Grind a few lemon peels for freshness (optional).','For the kitchen and each bathroom sink: pour in ½ cup baking soda, follow with ½ cup vinegar, let it fizz 10 minutes, then flush with hot tap water.','Run water for 30 seconds in any rarely used sinks/showers (guest bath!) so the P-trap stays full — a dry trap lets sewer gas in.','Flush rarely used toilets.'],
+  tip:'Never pour grease down any drain — collect it in a can and trash it. Avoid chemical drain openers; they damage pipes and the disposal.' },
+
+{ id:'washer-clean', months:1, area:'appliance', time:'5 min active',
+  title:'Run washing machine cleaning cycle',
+  why:'Front-load and HE washers grow mildew in the drum and door gasket, causing musty towels. Manufacturers recommend a monthly cleaning cycle.',
+  supplies:['Washer cleaner tablet (e.g. Affresh) or 2 cups white vinegar','Rag for the door gasket'],
+  steps:['Empty the drum.','Drop in a washer-cleaner tablet (or pour vinegar into the drum).','Run the "Tub Clean / Self Clean" cycle, or the hottest, largest normal cycle if there isn\'t one.','Wipe the door gasket folds with a rag (front-loaders) — pull the rubber back and clean out the gunk and stray socks.','Wipe the detergent drawer; leave the door and drawer open to air-dry.'],
+  tip:'Between washes, leave the washer door cracked open — it prevents 90% of the musty smell.' },
+
+/* ------------------------------ QUARTERLY ------------------------------- */
+{ id:'smoke-co-test', months:3, area:'safety', time:'10 min',
+  title:'Test smoke & CO detectors',
+  why:'Working detectors cut the risk of dying in a home fire roughly in half. Test every unit — bedrooms, hallways each floor, and near the garage entry for CO.',
+  supplies:['Step stool','Spare 9V / AA batteries (whatever your models use)'],
+  steps:['Press and hold the TEST button on every smoke detector until it alarms (a few seconds). Warn the household first!','Test every carbon monoxide detector the same way.','Replace the battery in any unit that chirps, sounds weak, or fails to alarm.','Vacuum dust off detector vents with a brush attachment — dust causes false alarms.','Check the manufacture date on the back: replace smoke detectors older than 10 years, CO detectors older than 7.'],
+  tip:'A detector chirping once every minute = low battery. Chirping every 30 seconds or a flashing error = end of life; replace the unit.' },
+
+{ id:'gfci-test', months:3, area:'safety', time:'5 min',
+  title:'Test GFCI outlets',
+  why:'GFCI outlets (the ones with TEST/RESET buttons — kitchen, bathrooms, garage, laundry) protect against electrocution near water. They wear out silently; testing is the only way to know they still work.',
+  supplies:['Nothing required (optional: $10 outlet tester)'],
+  steps:['Find every GFCI outlet: kitchen counters, each bathroom, garage, laundry area.','Plug in a lamp or phone charger, press TEST — the power should cut instantly.','Press RESET — power should return.','If pressing TEST does not kill the power, or RESET won\'t restore it, the outlet has failed: have it replaced.','Also press TEST/RESET on GFCI breakers in your electrical panel if you have them.'],
+  tip:'One GFCI often protects several downstream outlets — if a bathroom outlet is dead, check for a tripped GFCI in another bathroom or the garage.' },
+
+{ id:'dishwasher-filter', months:3, area:'appliance', time:'15 min',
+  title:'Clean dishwasher filter & run cleaning cycle',
+  why:'A clogged filter is why dishes come out gritty or smelly. Most modern dishwashers have a manual filter that needs rinsing — many owners never learn it exists.',
+  supplies:['Dishwasher cleaner (e.g. Affresh) or 1 cup white vinegar','Soft brush / old toothbrush','Dish soap'],
+  steps:['Remove the bottom rack. Twist out the cylindrical filter on the tub floor (usually a quarter-turn), and lift out the flat coarse filter beneath it.','Rinse both under hot water; scrub mesh with a soft brush and dish soap until water runs through freely.','Wipe the tub floor and the door edges/gasket, where gunk collects.','Check and clear the spray-arm holes with a toothpick if blocked.','Reinstall the filters (twist until locked).','Run an empty hot cycle with dishwasher cleaner, or with a cup of vinegar standing upright in the top rack.'],
+  tip:'Gritty glasses after this? Check that the filter is locked in properly — a loose filter lets food debris recirculate.' },
+
+{ id:'hood-filter', months:3, area:'appliance', time:'20 min',
+  why:'A grease-soaked filter can\'t capture smoke — and it\'s a fire risk over the stove. Degreasing it quarterly keeps the microwave/hood venting properly.',
+  title:'Degrease range hood / microwave grease filter',
+  supplies:['Dish soap (a degreasing one like Dawn)','¼ cup baking soda','Large pot or sink of very hot water','Non-scratch brush'],
+  steps:['Slide or unclip the metal mesh filter(s) from under the microwave or range hood.','Fill the sink with the hottest tap water, a good squirt of dish soap, and ¼ cup baking soda.','Submerge the filters and soak 10–15 minutes.','Scrub with a non-scratch brush, rinse hot, and shake dry.','Wipe down the underside of the microwave/hood while the filters dry.','Reinstall once fully dry. If your over-range microwave has a charcoal filter (recirculating models), replace it every 6 months — it can\'t be washed.'],
+  tip:'If the filter is still dripping grease after soaking, run it through the dishwasher (top rack, no heated dry).' },
+
+{ id:'condensate-line', months:3, area:'hvac', time:'15 min',
+  title:'Flush AC condensate drain lines (both units)',
+  why:'Each AC unit produces gallons of condensation daily in summer. Algae clogs the drain line, and the backup either trips a float switch (AC stops) or overflows — a common cause of attic/ceiling water damage.',
+  supplies:['Distilled white vinegar (1 cup per unit)','Funnel','Rag','Wet/dry vac (optional, for clearing a clog at the outside end)'],
+  steps:['At each air handler (attic/closet), find the white PVC condensate line and its T-shaped vent with a cap near the unit.','Remove the cap and slowly pour ~1 cup of distilled vinegar down the line using the funnel. Recap.','Do the same on the second unit.','Check the drain pan under each attic unit — standing water means a clog or slow drain; vinegar more often or vac the line clear.','Outside, find where the line(s) exit and confirm they drip when AC is running.','Do this every quarter, or monthly during heavy cooling season.'],
+  tip:'Vinegar, not bleach — bleach vapor corrodes the coil and fittings. If a line is fully clogged, suck it clear with a wet/dry vac sealed to the outdoor end.' },
+
+{ id:'garage-safety', months:3, area:'garage', time:'10 min',
+  title:'Test garage door safety features',
+  why:'The auto-reverse and photo-eye sensors are what keep a 150-lb door from injuring a person, pet, or car. Federal safety standards expect these to be tested regularly.',
+  supplies:['A 2×4 board or a roll of paper towels'],
+  steps:['Lay the 2×4 (or paper towel roll) flat on the ground in the door\'s path.','Close the door with the remote. It must reverse within 2 seconds of touching the object. If it crushes it, the force setting needs adjustment — stop using and fix/service.','Open the door again. While it\'s closing, wave a broom through the photo-eye beam (the sensors ~6" off the floor) — the door must reverse immediately.','Check both photo-eye lenses: wipe them clean and confirm indicator lights are solid (blinking = misaligned; gently bend brackets until solid).','Pull the red emergency release cord and lift the door by hand a few feet — it should move fairly easily. Re-engage by pulling the cord toward the door and running the opener.'],
+  tip:'While you\'re there: give the door a look — frayed cables or a gap in the springs mean call a pro. Never adjust torsion springs yourself.' },
+
+/* ----------------------------- SEMI-ANNUAL ------------------------------ */
+{ id:'fridge-coils', months:6, area:'appliance', time:'30 min',
+  title:'Vacuum refrigerator coils & clean drip pan',
+  why:'Dust-caked coils make the compressor run hot and hard — the top cause of premature fridge death and higher power bills. Clean coils can cut fridge energy use noticeably.',
+  supplies:['Coil cleaning brush (long flexible wand, ~$10)','Vacuum with crevice tool','Flashlight'],
+  steps:['Unplug the fridge (or flip its breaker).','Find the coils: behind the front bottom kick-plate grille, or on the back. Pop the grille off.','Work the coil brush through the coils; vacuum the loosened dust as you go. Get the floor under the unit too.','Locate the drip pan (usually above/near the compressor, behind the kick plate) — slide it out if removable, wash with soapy water, dry, replace.','Reattach the grille, plug back in, push the fridge back (leave 1–2" clearance at the back for airflow).','While you\'re there: vacuum the door gasket grooves and wipe them; a $2 test — close the door on a dollar bill; if it slides out with no resistance, the gasket is worn.'],
+  tip:'Pets in the house? Do this quarterly — fur clogs coils fast.' },
+
+{ id:'fridge-filter', months:6, area:'appliance', time:'5 min',
+  title:'Replace refrigerator water filter',
+  why:'After ~6 months the filter stops removing contaminants and can start harboring bacteria. Ice and water taste flat or odd when it\'s overdue.',
+  supplies:['Compatible filter (find the model number on your current filter or inside the grille slot — write it here after the first swap)'],
+  steps:['Find the filter: inside the fridge (upper right corner or in the grille) — check your manual.','Twist/eject the old filter per the door diagram.','Remove packaging caps from the new filter and insert until it locks.','Run 2–4 gallons of water through the dispenser (into a pitcher) to flush carbon fines — the sputtering is normal air purging.','Reset the filter indicator light (usually hold the "Filter Reset" button 3 seconds).'],
+  tip:'OEM filters are pricey; name-brand certified compatibles (NSF-42/53 rated) work well for less. Buy 2-packs.' },
+
+{ id:'garage-lube', months:6, area:'garage', time:'20 min',
+  title:'Lubricate garage door hardware',
+  why:'A dry door is loud, hard on the opener motor, and wears parts fast. Ten minutes of lube twice a year is the difference between a 10-year and 20-year door.',
+  supplies:['Garage door lubricant — white lithium grease or silicone spray (NOT WD-40; it\'s a cleaner, not a lubricant)','Rag','Step ladder'],
+  steps:['Close the door and unplug the opener.','Wipe old gunk off hinges, rollers, and springs with a rag.','Spray each hinge pivot point and each roller\'s bearings (not the nylon wheel surface or the track).','Spray the torsion spring above the door lightly along its length.','Lube the opener rail\'s contact point (screw-drive: grease the screw; chain/belt: just the trolley contact area, belts need nothing).','Wipe the tracks clean with a rag — tracks should be clean and dry, never greased.','Plug in, run the door twice to distribute.'],
+  tip:'Squeak still there? It\'s usually one dry hinge — run the door slowly and listen for the culprit.' },
+
+{ id:'bath-fans', months:6, area:'general', time:'20 min',
+  title:'Clean bathroom exhaust fan grilles (all baths)',
+  why:'Your 3.5 baths rely on these fans to remove moisture that otherwise feeds mold and peels paint. A dust-matted grille can cut airflow by half.',
+  supplies:['Step ladder','Vacuum with brush attachment','Warm soapy water','Screwdriver (some grilles)'],
+  steps:['Flip the fan off. Pull the grille down — most unclip by squeezing two spring wires; some have screws.','Wash the grille in warm soapy water; dry fully.','Vacuum the fan blades and housing with the brush attachment. Wipe the blades with a damp cloth if grimy.','Reinstall the grille. Repeat for each bathroom fan.','Test: fan should hold a piece of toilet paper against the grille while running. If not, the duct may be blocked — worth investigating.','Run fans during and 20 minutes after every shower (a wall timer switch is a great cheap upgrade).'],
+  tip:'While up there, glance for condensation stains around the fan housing — a sign the duct is leaking moist air into the ceiling.' },
+
+{ id:'caulk-grout', months:6, area:'general', time:'30 min inspect (+2 hr if re-caulking)',
+  why:'Failed caulk lets shower water into walls and subfloor — one of the most expensive slow leaks in a home. Catching gaps early keeps it a $8 tube-of-caulk fix.',
+  title:'Inspect & touch up caulk and grout (tubs, showers, sinks)',
+  supplies:['100% silicone caulk (kitchen & bath, mold-resistant)','Caulk gun','Caulk remover tool / razor scraper','Painter\'s tape','Rubbing alcohol & rag','Grout pen or premixed grout (for grout lines)'],
+  steps:['In each bath: inspect the caulk line where tub/shower meets wall and floor, around the drain, and along sink backsplashes. Look for cracks, peeling, gaps, or dark mold behind the bead.','Check grout lines for cracks or powdering; press tiles gently — movement means water may be behind them.','Small mildew on sound caulk: clean with 1:3 bleach-water, rinse, done.','Failed sections: strip the old bead completely with the remover tool, clean with alcohol, let dry fully.','Tape both sides of the joint, run a steady bead, smooth with a wet finger, pull tape while wet.','No showers in that stall for 24 hours while it cures.'],
+  tip:'Never caulk over old caulk — it will peel. Fill the tub with water BEFORE caulking a tub/wall joint so the joint is at max flex when the caulk cures.' },
+
+{ id:'descale', months:6, area:'plumbing', time:'15 min active + overnight soak',
+  title:'Descale showerheads & faucet aerators',
+  why:'Mineral scale clogs spray holes, wrecks water pressure, and hides bacteria. Vinegar dissolves it for pennies.',
+  supplies:['White vinegar (2–3 cups)','Zip-top bags (one per showerhead)','Rubber bands','Old toothbrush','Adjustable wrench + rag (optional)'],
+  steps:['For each showerhead: fill a zip bag with vinegar, submerge the head in it, and secure the bag with a rubber band. Leave 1–4 hours (overnight for heavy scale). Note: skip or shorten to 30 min for brass/nickel finishes.','Remove the bag, scrub spray holes with the toothbrush, run hot water 1 minute.','For each sink faucet: unscrew the aerator at the tip (by hand or with a rag-wrapped wrench), drop the parts in a cup of vinegar for an hour, scrub, rinse, reassemble.','Do all 3.5 baths + kitchen.'],
+  tip:'Weak flow in just one faucet is almost always the aerator — this fixes it for free.' },
+
+{ id:'attic-check', months:6, area:'general', time:'20 min',
+  title:'Inspect attic (leaks, pests, insulation, AC units)',
+  why:'The attic is where problems hide: roof leaks, pest nests, disturbed insulation, and (likely) your air handlers. Twice a year — spring and fall — catches issues before ceilings stain.',
+  supplies:['Bright flashlight','Dust mask','Long sleeves','Phone for photos'],
+  steps:['Go up on a dry day. Walk only on framing/decking — never between joists (that\'s drywall).','Scan the roof underside for water stains, daylight pinholes, or damp sheathing — especially around vents and any penetrations. Report exterior/roof issues to the HOA promptly, in writing.','Look and listen for pests: droppings, nests, chewed wiring or ducts.','Check insulation is even, dry, and not compressed or scattered.','Inspect your AC air handlers up there: any rust or water in the drain pans? Duct connections tight, no crushed or disconnected ducts?','Confirm bathroom fan ducts run to a vent, not just dumping into the attic.','Photograph anything questionable so you can compare next time.'],
+  tip:'Musty smell or black speckling on wood = moisture problem; find the source (roof, duct condensation, bath fan) before it becomes mold remediation.' },
+
+{ id:'ceiling-fans', months:6, area:'general', time:'15 min',
+  title:'Reverse ceiling fan direction & dust blades',
+  why:'Counterclockwise in summer pushes air down (cooling breeze); clockwise in winter pulls air up, circulating warm air off the ceiling. Doing this can let you set the thermostat a few degrees kinder.',
+  supplies:['Step ladder','Microfiber cloth or old pillowcase'],
+  steps:['Turn the fan off and let it stop.','Slip an old pillowcase over each blade and slide it off — dust stays in the case, not on the bed.','Find the reverse switch on the motor housing (or in the remote/app for newer fans).','Summer: counterclockwise (stand under it — you should feel a breeze). Winter: clockwise on low.','Check for wobble; tighten visible blade screws if wobbling.'],
+  tip:'Do this when you change between heating and cooling seasons — it pairs naturally with the HVAC tune-up reminder.' },
+
+{ id:'hvac-tuneup', months:6, area:'hvac', time:'Schedule a pro',
+  title:'Schedule pro HVAC tune-up (cooling in spring, heating in fall)',
+  why:'A pro tune-up each season catches refrigerant, electrical, and combustion issues you can\'t DIY, keeps warranties valid, and pays for itself in efficiency. With 2 units, make sure both are serviced.',
+  supplies:['Nothing — just book the appointment (many companies sell 2-visit/year plans that cover both units)'],
+  steps:['Spring visit: cooling checkup — refrigerant charge, capacitor, coil condition, condensate system, for BOTH units.','Fall visit: heating checkup — burners/heat exchanger (gas) or heat strips (electric), for both units.','Ask them to note filter sizes and any parts nearing end of life.','Keep the receipt/report — it matters for warranty claims and resale.','Mark this task done after each seasonal visit is completed.'],
+  tip:'Book spring service in March–April and fall service in September–October, before the rush. A maintenance plan usually includes priority service when something does break.' },
+
+/* -------------------------------- ANNUAL -------------------------------- */
+{ id:'wh-flush', months:12, area:'plumbing', time:'1–1.5 hr',
+  title:'Flush water heater & test T&P relief valve',
+  why:'Sediment settles in the tank, insulating the burner/elements — wasting energy, causing rumbling, and corroding the tank from inside. Annual flushing is the single best way to extend water heater life. The T&P valve is the tank\'s safety release; it must not be stuck.',
+  supplies:['Garden hose','Bucket','Work gloves','Flathead screwdriver (some drain valves)','Floor drain, driveway, or large buckets for discharge'],
+  steps:['Turn the heater off: gas → set control to "Pilot"/off; electric → flip its breaker. (Electric: never run elements with the tank empty.)','Turn off the cold-water supply valve on top of the tank.','Connect the garden hose to the drain valve at the bottom; run the hose to a floor drain or outside (water will be HOT — let it cool an hour first if you can).','Open a hot tap upstairs to break the vacuum, then open the drain valve and drain the tank.','Briefly open the cold supply a few times to stir and flush remaining sediment until the hose runs clear.','Close the drain, remove the hose, refill the tank (leave the upstairs hot tap open until water flows steadily — tank is full). Only then restore power/gas.','Test the T&P valve: lift its lever for 2–3 seconds — hot water should discharge through the overflow pipe, and it should snap shut and stop when released. If it won\'t open, or dribbles constantly afterward, have the valve replaced.','Check the anode rod every 3 years (or have the plumber do it at a service) — a $30 rod sacrifices itself so the tank doesn\'t rust.'],
+  tip:'Rumbling/popping sounds from the tank = heavy sediment; flush now. If yours has never been flushed and is 8+ years old, ask a plumber first — opening an old crusted drain valve can sometimes stick open.' },
+
+{ id:'dryer-vent', months:12, area:'appliance', time:'1 hr',
+  title:'Deep-clean dryer vent duct',
+  why:'Lint-clogged dryer ducts cause thousands of house fires a year, and make every load take two cycles. If drying is slow or the dryer top gets hot, this is overdue.',
+  supplies:['Dryer vent brush kit (flexible rods, ~$20)','Vacuum with hose','Screwdriver or hose-clamp driver','Foil duct tape (NOT fabric duct tape) if re-sealing joints'],
+  steps:['Unplug the dryer (gas: also close the gas valve) and pull it out from the wall.','Disconnect the duct from the dryer outlet. Vacuum inside the dryer\'s outlet port and the duct opening.','Run the rotating brush kit through the duct from inside toward the exterior vent, feeding rod sections as you go. Vacuum what it pulls out.','Find the exterior vent flap (check with HOA rules before working on it if it\'s on the building exterior): clear lint, confirm the flap opens/closes freely and isn\'t blocked by a bird nest or screen of lint.','Reconnect with a clamp; if any duct is white vinyl/plastic, replace it with semi-rigid or rigid metal — plastic duct is a fire hazard.','Push the dryer back (don\'t crush the duct), run it empty on air/fluff and confirm strong airflow at the exterior flap.','Also vacuum the lint-trap slot inside the dryer with a crevice tool.'],
+  tip:'Clean the lint screen every single load, and wash it with soap every few months if you use dryer sheets (they leave an airflow-blocking film — test: water should pour through the screen, not bead).' },
+
+{ id:'detector-batteries', months:12, area:'safety', time:'20 min',
+  title:'Replace all smoke/CO detector batteries',
+  why:'Annual replacement (even if not chirping yet) means you never get the 3 a.m. chirp and never have a dead detector. Sealed 10-year-battery units are exempt — just test those.',
+  supplies:['Fresh 9V or AA batteries for every detector (count them first — bedrooms, halls, each floor, near garage)','Step stool'],
+  steps:['Count your detectors and buy batteries for all of them at once.','Twist each detector off its base (or open the battery door), swap the battery, remount.','Press TEST on each one after remounting.','Write the date on a piece of tape inside the battery door.','Check manufacture dates while you\'re there: smoke >10 yrs old or CO >7 yrs old → replace the whole unit.','Sealed 10-year units: no battery swap possible — just test, and replace the unit at its end-of-life date.'],
+  tip:'Pick a memorable date — many people use daylight-saving weekend or New Year\'s — and do the whole house in one pass.' },
+
+{ id:'washer-hoses', months:12, area:'appliance', time:'15 min',
+  title:'Inspect washing machine hoses & dryer connections',
+  why:'A burst washer supply hose floods at full pressure — one of the most common (and most preventable) home insurance claims. Rubber hoses should be replaced ~every 5 years.',
+  supplies:['Flashlight','Braided stainless-steel hoses (if replacing — ~$20/pair)','Adjustable pliers, bucket, towel (if replacing)'],
+  steps:['Pull the washer forward enough to see the two supply hoses (hot & cold).','Look and feel for: bulges, blisters, cracks, rust at the fittings, or dampness. Any of these → replace both hoses now.','If hoses are plain rubber and 5+ years old, replace with braided stainless even if they look fine (turn off the two supply valves, unscrew hoses with pliers into a bucket, screw on new ones with their washers, snug plus a quarter turn — no thread tape needed).','Exercise the two supply shutoff valves: close and reopen them so they don\'t seize — you want them working in an emergency.','Confirm the drain hose is secured in the standpipe and not kinked.','Level check: rock the washer; adjust feet if it wobbles (wobble kills bearings).'],
+  tip:'Know where these shutoffs are and leave them accessible — closing them when leaving for long trips is cheap insurance.' },
+
+{ id:'shutoff-valves', months:12, area:'plumbing', time:'20 min',
+  title:'Exercise main water shutoff & fixture valves',
+  why:'When a pipe bursts, minutes matter — and a valve that hasn\'t moved in years is often seized exactly when you need it. "Exercising" valves keeps them ready.',
+  supplies:['Flashlight','Rag','Silicone spray (optional, for stiff stems)'],
+  steps:['Find your main shutoff (townhome: often in the garage, a utility closet, or where the line enters — find it now, not during a flood).','Close it fully, then reopen fully. Ball valve (lever): quarter turn. Gate valve (round wheel): turn gently until snug, never force.','After reopening, run a faucet to confirm normal flow and check the valve stem for drips.','Exercise the small stop valves under every sink and behind every toilet: close, reopen. If one weeps from the stem afterward, snug the packing nut an eighth-turn.','Exercise the washer supply valves and the water heater\'s cold inlet valve.','Label the main valve with a tag so anyone in the house can find it.'],
+  tip:'If the main valve is seized or drips when moved, have a plumber replace it on your schedule — not during an emergency. Everyone in the house should know where it is.' },
+
+{ id:'toilet-check', months:12, area:'plumbing', time:'30 min',
+  title:'Toilet health check — all 3.5 baths',
+  why:'A silently leaking flapper wastes up to 200 gallons a day, and loose bolts or aging supply lines cause slow floor damage. Ten minutes per toilet, once a year.',
+  supplies:['Food coloring or dye tablets','Flashlight'],
+  steps:['For each toilet: put 5–10 drops of food coloring in the TANK. Wait 20 minutes without flushing.','Color appears in the BOWL → the flapper leaks. Replacing a flapper is a $8, 10-minute DIY (match the model; turn off the stop valve, drain, swap).','Check the fill: after a flush, water should stop cleanly at the marked line. Running or hissing → adjust the float; if it keeps running, the fill valve is a cheap swap too.','Rock the toilet gently — movement means loose closet bolts (snug alternately, gently — porcelain cracks) or a failing wax ring if there\'s also dampness at the base.','Inspect the supply line and stop valve for corrosion or dampness.','Check the seat and tighten its bolts.'],
+  tip:'A toilet that needs jiggling is a worn flapper or chain — fix it; it\'s the most common water-waster in any home.' },
+
+{ id:'fire-extinguisher', months:12, area:'safety', time:'10 min',
+  title:'Inspect fire extinguishers',
+  why:'An extinguisher only helps if it\'s charged, reachable, and you remember how to use it. You should have at least: kitchen, garage, and one per floor.',
+  supplies:['Replacement extinguisher(s) if any fail (ABC-rated, 5–10 lb for home)'],
+  steps:['Locate each extinguisher — kitchen, garage, upstairs. (Fewer than that? Add them.)','Check the pressure gauge: needle in the green. Red/recharge zone → replace or recharge.','Inspect: pin and tamper seal in place, no corrosion or damage, hose not cracked or clogged.','Check the date: most home extinguishers last 10–12 years; disposable ones state a replace-by date.','Turn dry-chemical extinguishers upside down and give a few gentle shakes/taps so the powder doesn\'t compact.','Refresh your memory — PASS: Pull, Aim at the base, Squeeze, Sweep. Everyone in the house should know where they are.'],
+  tip:'Mount them visibly near exits of the risk area — not buried under the sink, and never right next to the stove (you\'d have to reach through fire to grab it).' },
+
+{ id:'garage-balance', months:12, area:'garage', time:'10 min',
+  title:'Garage door balance & hardware check',
+  why:'An out-of-balance door strains the opener motor toward early failure and can slam dangerously. The balance test takes two minutes.',
+  supplies:['Step ladder','Wrench/socket set (for loose track bolts)'],
+  steps:['Close the door and pull the red release cord to disconnect the opener.','Lift the door by hand to waist height and let go. Balanced: it stays put or drifts slowly. Slams down or flies up: spring tension is off — call a pro (torsion springs are dangerous; never DIY them).','Raise/lower by hand: it should glide without grinding or catching.','Visually check: cables frayed? rollers cracked? hinges cracked? track brackets loose? Snug loose bolts; note anything worn for a pro.','Re-engage the opener (pull cord toward door, run opener).','Wipe the weather seal at the door bottom and check it still seals against the floor.'],
+  tip:'Pair this with the semi-annual lubrication task in spring — do the balance test after lubing.' },
+
+{ id:'oven-clean', months:12, area:'appliance', time:'2 hr (mostly waiting)',
+  title:'Deep clean oven, stovetop & behind the range',
+  why:'Carbonized grease smokes, flavors food, and is a fire risk. And the canyon beside/behind a range collects enough crumbs and grease to interest pests.',
+  supplies:['Baking soda (1 cup) + water (paste), spray bottle of vinegar — or commercial oven cleaner','Gloves','Non-scratch scrub pads','Degreaser or hot soapy water for behind the range'],
+  steps:['Remove racks; soak them in the tub/sink with hot water and dish soap (lay a towel under them in a tub).','Spread baking-soda paste (¾ cup soda + a few tbsp water) over interior surfaces, avoiding heating elements and the door gasket. Leave 4+ hours or overnight.','Wipe out the paste, spritz remaining streaks with vinegar, wipe again. (Or use oven cleaner per its label with good ventilation — never on self-clean coating unless the label allows.)','Self-clean cycle alternative: fine on most modern ovens, but run it with windows open and the house fan on, and never right before a big cooking holiday (it\'s when weak parts fail).','Stovetop: gas — soak grates, clean burner ports with a pin; glass-top — ceramic cooktop cleaner and a razor held flat for baked-on spots.','Carefully pull the range forward (gas: mind the flex line — don\'t stretch it) and clean the floor and side walls; push back.','Clean the door glass; if grease is between the panes, most doors have bottom slots a flexible wand can reach through.'],
+  tip:'Line the floor of the oven with nothing — foil on the oven floor blocks airflow and can fuse to enamel. Use a rimmed sheet on a lower rack instead to catch drips.' },
+
+{ id:'condenser-coils', months:12, area:'hvac', time:'45 min',
+  title:'Rinse AC condenser coils (both outdoor units)',
+  why:'The outdoor condensers dump the heat your ACs remove. Cottonwood fluff, dirt, and grass clippings mat the fins and can cut efficiency dramatically. (Even with HOA-maintained grounds, the units themselves are typically the homeowner\'s — confirm in your HOA docs.)',
+  supplies:['Garden hose with spray nozzle','No-rinse foaming coil cleaner (optional)','Fin comb (optional, for bent fins)','Screwdriver/driver for the top grille (only if clearing debris inside)'],
+  steps:['Turn off power to each condenser at the outdoor disconnect box (a pull-out block or switch near the unit) — and at the breaker for good measure.','Clear leaves/debris from around each unit; you want 2 ft of clearance all around.','Gently rinse the fins from OUTSIDE with the hose at a downward angle — moderate pressure only (a pressure washer will flatten fins).','Heavily grimed? Spray foaming coil cleaner on, wait per label, rinse.','If fins are bent flat in patches, straighten with a fin comb.','If the top is full of leaves: remove the top grille (fan attached — support it, mind the wires), scoop debris, reassemble.','Restore power. Do the second unit. Best done each spring before cooling season.'],
+  tip:'Spring pollen/cottonwood season is when coils clog fastest — a quick monthly hose rinse in that season keeps them clear.' },
+
+{ id:'windows-doors', months:12, area:'general', time:'45 min',
+  title:'Clean window tracks & service door hardware',
+  why:'Gritty tracks wear out window rollers and seals, and sticky locks/hinges fail at inconvenient times. (Exterior glass and frames are the HOA\'s — this is the interior side.)',
+  supplies:['Vacuum with crevice tool','Old toothbrush','Soapy water & rags','Silicone spray (tracks, weatherstrip)','Graphite or dry PTFE lube (locks)','3-in-1 oil (hinges)'],
+  steps:['Vacuum each window track, agitate grime with the toothbrush, wipe clean with soapy rag, dry.','Light silicone spray in the tracks; slide windows to distribute. Check each window locks smoothly.','Wipe rubber weatherstripping and treat with silicone so it stays supple.','Door hinges that squeak: a drop of oil, swing to work in, wipe excess.','Locks/deadbolts: puff of graphite or dry PTFE into the keyway, work the key. (Never oil in locks — it gums.)','Test operation of every window — they\'re fire egress; each bedroom window must open easily.','Check interior door strike plates; tighten loose screws (a sagging door often just needs one long screw in the top hinge).'],
+  tip:'Condensation between double-pane glass = failed seal; note which windows and check whether your HOA or home warranty covers glass units.' },
+
+{ id:'sec-test', months:3, area:'security', time:'20 min', video:'how to test home security system sensors cameras',
+  title:'Test security system & clean camera lenses',
+  why:'A security system only protects you if every sensor actually triggers and every camera actually records. Sensors fail quietly, lenses film over with dust and spider webs, and you want to find that out on a Saturday afternoon — not after an incident.',
+  supplies:['Microfiber cloth (dry — no sprays on lenses)','Soft brush or compressed air for cobwebs','Step stool for cameras'],
+  steps:['Arm the system in test/home mode (check your app for a test option so you don\'t trigger monitoring dispatch, if you have it).','Open each door with a door sensor one at a time — confirm each one registers in the app.','Open each window with a window sensor — confirm each registers. Note any sensor that\'s slow or silent.','Press the video doorbell and confirm the alert, live view, and two-way audio work.','Pull up each camera\'s live view; check night-vision quality on one evening test too.','Wipe every camera lens and the doorbell lens gently with the dry microfiber; clear cobwebs around housings (spiders love the IR glow and cause phantom motion alerts).','Lock/unlock the smart lock from the app and from the keypad; confirm the door aligns and the bolt throws smoothly without lifting/pushing the door.','Check battery percentage levels on everything in the app while you\'re there; note anything under ~30% for the battery task.'],
+  tip:'Bolt binding on the smart lock (motor grinding, needing to push the door) drains its battery 2–3× faster — a 2-minute strike-plate adjustment fixes it.' },
+
+{ id:'sec-batteries', months:6, area:'security', time:'30 min', video:'how to replace smart lock door sensor video doorbell battery',
+  why:'Everything in your system — cameras, smart lock, doorbell, door and window sensors — runs on batteries, and they never all die at a convenient time. A twice-yearly sweep (with the app\'s battery levels as your guide) means nothing ever goes dark.',
+  title:'Battery sweep: lock, doorbell, cameras, all sensors',
+  supplies:['Spare batteries matched to your devices — typically AA (smart lock), CR2032 / CR123A (door & window sensors) — check yours and note the types here','Small Phillips screwdriver (sensor covers)','USB charger/cable for rechargeable cameras & doorbell'],
+  steps:['Open your security app\'s device list and screenshot the battery levels — it\'s your worklist and your baseline for next time.','Replace or recharge anything under ~40% now; at your usage rate it likely won\'t make it to the next sweep.','Smart lock: swap all its batteries at once (never mix old + new), then test keypad and app operation. Know where your physical backup key is.','Door/window sensors: pop the cover, swap the coin/CR123A cell, close, then open the door/window once to confirm it still reports.','Rechargeable cameras & doorbell: recharge per level readings; if a battery now drains noticeably faster than it used to, it\'s aging — order a replacement pack before it strands you.','Restock your spares drawer so next sweep is a no-shopping job.','Log any device that dropped unusually fast — cold snaps and heavy motion traffic are normal causes; a failing battery is not.'],
+  tip:'Winter note: lithium batteries handle cold far better than alkaline for outdoor cameras and sensors — worth the upgrade on anything outside.' },
+
+{ id:'sec-annual', months:12, area:'security', time:'45 min', video:'smart home security maintenance firmware wifi settings',
+  title:'Security system annual review (codes, firmware, storage)',
+  why:'The digital side ages too: firmware fixes security holes, old access codes accumulate (dog walker from two years ago?), and cloud storage plans quietly renew. One annual audit keeps the system trustworthy.',
+  supplies:['Your security app + account passwords','15 minutes with your Wi-Fi router admin page'],
+  steps:['Update firmware on every device (cameras, doorbell, lock, hub) via each app — most update automatically, but verify.','Audit access: delete unused lock codes and app users; change any code that\'s been widely shared. Make sure your own codes aren\'t birthdays/1234.','Enable two-factor authentication on the security accounts if you haven\'t.','Review camera storage: is the cloud subscription worth it, is local storage (SD card) full or failing? Reformat/replace SD cards every couple of years.','Reboot and update your Wi-Fi router — the whole system rides on it. Confirm the security devices are on a strong signal (relocate or add a mesh point for any camera that constantly drops).','Walk the camera views: do angles still cover what matters (doors, garage, packages)? Re-aim as needed.','Verify emergency contacts and monitoring settings are current.'],
+  tip:'Put your router and hub on a cheap UPS battery backup — your cameras staying online during a power blip is exactly the kind of thing you bought them for.' },
+
+{ id:'fire-sprinkler', months:6, area:'safety', time:'20 min', video:'home fire sprinkler system inspection 13D what to check',
+  title:'Fire sprinkler visual inspection',
+  why:'Residential fire sprinklers are extremely reliable — but only if the heads are unobstructed, unpainted, and the water supply valve is actually open. A twice-yearly walk-through is the homeowner\'s entire job; the rest is leaving them alone.',
+  supplies:['Flashlight','Step stool (to look, not touch)'],
+  steps:['Walk every room, closet, and the garage and look at each sprinkler head: it should be clean, undamaged, not corroded, and free of paint or drywall texture (a painted head may not activate — it needs professional replacement, never scraping).','Confirm nothing hangs from any head or pipe — ever. No hangers, no decorations, nothing.','Check clearance: keep storage at least 18 inches below head level, especially in closets and the garage where boxes creep upward.','Find the sprinkler control valve (often near the water heater or where the main enters) and confirm it is OPEN and, if present, its tamper seal/lock is intact.','If there\'s a pressure gauge, note the reading — it should sit in the normal range and roughly match last time (photo it for comparison).','Look for any signs of leaks or corrosion at visible pipes and fittings.','Anything questionable — a damaged head, low gauge, closed valve — call a fire sprinkler contractor; also check whether your HOA runs a periodic professional inspection and get on that schedule.'],
+  tip:'Never hang anything from sprinkler pipes in the garage — it\'s the #1 residential sprinkler mistake. And never test a head by activating it: each one releases 10+ gallons a minute.' },
+
+/* ================================= CAR ================================== */
+{ id:'car-tires', months:1, area:'auto', domain:'auto', time:'15 min', video:'how to check tire pressure and tread depth penny test',
+  title:'Check tire pressure & tread (both cars)',
+  why:'Under-inflated tires are the top cause of blowouts, wear out years early, and cost you gas mileage. Pressure silently drops ~1 PSI per month — and ~1 PSI for every 10°F the temperature falls.',
+  supplies:['Tire pressure gauge (digital, ~$10)','Portable tire inflator or air at a gas station','A penny (for the tread test)'],
+  steps:['Check when tires are cold (car parked 3+ hours — your garage is perfect).','Find the correct PSI on the sticker inside the driver\'s door jamb — NOT the number on the tire sidewall (that\'s the maximum, not the target).','Unscrew each valve cap, press the gauge on firmly, read, and top up or bleed air to match the sticker. All four tires, and the spare if you have one (spares need much higher PSI — it\'s printed on it).','Tread check: insert a penny upside-down in a groove. If you can see all of Lincoln\'s head, tread is below 2/32" — time for new tires. Check inner, center, and outer grooves.','Look at wear pattern: worn edges = under-inflation; worn center = over-inflation; one side or cupping = alignment/suspension — get it checked.','Repeat for your second car.'],
+  tip:'A tire that needs air every couple of weeks has a slow leak — often a nail. Most tire shops patch them cheap or free.' },
+
+{ id:'car-walkaround', months:1, area:'auto', domain:'auto', time:'10 min', video:'monthly car maintenance checklist walkaround lights fluids',
+  title:'5-minute walkaround: lights, washer fluid, leaks',
+  why:'Burned-out brake lights earn tickets and rear-endings; a fluid spot on the garage floor is the earliest warning of a failing hose or gasket. A monthly lap around each car catches both.',
+  supplies:['Washer fluid (a jug per car in the garage)','A helper, or a wall/garage door to reflect the lights'],
+  steps:['Turn on headlights: check low and high beams, both sides.','Have a helper (or watch the reflection off the garage door) confirm brake lights, turn signals, reverse lights, and hazards all work.','Top up windshield washer fluid under the hood.','Glance under the car: any fresh drips on the garage floor? Clear water under the AC area in summer is normal; anything colored (brown/black = oil, orange/green/pink = coolant, reddish = transmission) means get it looked at.','Test the horn and wipe backup camera and sensors clean.','Repeat for your second car.'],
+  tip:'Put a piece of cardboard under each parking spot for a week if you suspect a leak — it shows you the drip location and color instantly.' },
+
+{ id:'car-fluids', months:3, area:'auto', domain:'auto', time:'15 min per car', video:'how to check car engine oil coolant brake fluid levels',
+  title:'Check oil & fluid levels',
+  why:'Running low on oil or coolant destroys engines — and both can drop slowly without a warning light until real damage is done. A quarterly dipstick check takes two minutes per car.',
+  supplies:['Paper towels or a rag','Top-up oil in your car\'s grade (see oil cap or manual)','50/50 premixed coolant of the correct type (check manual — colors are NOT interchangeable)'],
+  steps:['Park level, engine cold or off 10+ minutes.','Oil: pull the dipstick, wipe it, reinsert fully, pull again — the level should be between the two marks. Below the low mark: add half a quart, wait, re-check. (Some newer cars show oil level in the dash menu instead.)','Note the oil\'s look: light brown is fine; milky/foamy = coolant intrusion — see a mechanic immediately.','Coolant: check the translucent overflow reservoir level against its MIN/MAX lines. NEVER open the radiator or reservoir cap when hot.','Brake fluid: reservoir on the driver\'s side firewall — level between MIN/MAX. Dropping brake fluid usually means worn pads or a leak; don\'t just top it, investigate.','Washer fluid and (if your car has a dipstick for it) power steering fluid too.','Repeat for the second car.'],
+  tip:'If a car needs oil added between changes regularly, track how much and tell your mechanic — consumption trend is exactly what they need to know.' },
+
+{ id:'car-battery', months:3, area:'auto', domain:'auto', time:'15 min', video:'how to clean car battery terminals corrosion baking soda',
+  why:'Corroded terminals cause slow cranks and no-starts, and car batteries only last 3–5 years — garage-kept helps, but summer heat kills them. A quick quarterly look prevents the parking-lot surprise.',
+  title:'Inspect & clean battery terminals',
+  supplies:['Baking soda + water (a tablespoon in a cup)','Old toothbrush or terminal brush','Petroleum jelly or battery terminal protectant spray','Gloves & eye protection','Multimeter (optional, ~$15)'],
+  steps:['Engine off, keys out. Find the battery (under the hood; some cars: trunk).','Look for white/green/blue crust on the terminals, and check the case for bulges or wet spots (bulging = replace).','If corroded: scrub terminals with the baking-soda paste and brush, then wipe dry. (For heavy crust, disconnect negative (–) first, then positive, clean, and reconnect positive first, negative last.)','Make sure both clamps are snug — they should not twist by hand.','Coat terminals lightly with petroleum jelly or protectant to slow future corrosion.','Optional: with a multimeter, a rested battery should read ~12.6V. Consistently under 12.4V = have it load-tested (free at most auto parts stores).','Repeat for the second car.'],
+  tip:'If a battery is 4+ years old, get it tested before winter and before long trips — they rarely give much warning before dying.' },
+
+{ id:'car-wash', months:3, area:'auto', domain:'auto', time:'1–2 hr', video:'how to wash your car properly two bucket method',
+  title:'Proper wash & interior clean',
+  why:'Dirt and road grime are abrasive, and bird droppings and sap etch clear coat in days. Regular washing is paint (and resale value) maintenance, not vanity — and a clean interior is worth it to you.',
+  supplies:['Car wash soap (never dish soap — it strips wax)','Two buckets + grit guard (one soap, one rinse)','Microfiber wash mitt & drying towels','Wheel brush','Interior: vacuum, microfiber cloths, interior cleaner, glass cleaner'],
+  steps:['Rinse the whole car first to knock off loose grit.','Wash wheels first with their own mitt/brush (they\'re the dirtiest).','Two-bucket wash: soap mitt, wash one panel top-down, rinse mitt in the rinse bucket before re-soaping. Never scrub in circles on dry paint.','Rinse and dry with clean microfiber towels (air drying leaves water spots).','Interior: pull the floor mats and shake/vacuum, vacuum seats and carpet, wipe the dash and consoles, clean interior glass.','Clean door jambs and the trunk seal area — where grime builds unseen.','Repeat for the second car (or alternate cars each quarter).'],
+  tip:'Bird droppings and sap: don\'t wait for wash day — wet a paper towel, lay it on the spot a few minutes, and lift it off gently the same day.' },
+
+{ id:'car-oil', months:6, area:'auto', domain:'auto', time:'45 min DIY or shop visit', video:'how to change your own oil and filter',
+  title:'Oil & filter change (per schedule)',
+  why:'Oil is the engine\'s lifeblood; overdue oil turns abrasive and sludgy. Modern synthetics typically go 5,000–10,000 miles or 6–12 months, whichever comes first — check YOUR manual and follow it, not the quick-lube sticker\'s aggressive 3,000.',
+  supplies:['Correct oil (grade & quantity from the manual, e.g. 0W-20 × 5 qt)','Correct oil filter','Drain pan, funnel, wrench/filter wrench','Ramps or jack + jack stands (never just a jack!)','Gloves & shop towels — OR just book the shop'],
+  steps:['Confirm it\'s due: check mileage/months since last change (write both here in the app when you mark done — e.g. "82,450 mi").','DIY route: warm the engine 2 min, raise the car safely (ramps or stands), drain plug out into the pan, let it fully drain.','Swap the filter (rub fresh oil on the new gasket), reinstall the drain plug with its washer, snug — don\'t gorilla it.','Refill with the correct amount, run 30 seconds, check for leaks, then verify dipstick level.','Take used oil and the filter to any auto parts store — they recycle it free.','Shop route: totally legitimate — just record the date and mileage here so the app tracks it.','Reset the oil-life monitor on the dash. Repeat/schedule for the second car.'],
+  tip:'Whichever route: keep receipts/notes with mileage. A documented maintenance history genuinely raises resale value.' },
+
+{ id:'car-rotate', months:6, area:'auto', domain:'auto', time:'45 min DIY or free with oil change', video:'how to rotate your tires at home jack stands',
+  title:'Rotate tires',
+  why:'Front tires wear faster (steering + engine weight). Rotating every 5,000–7,500 miles evens out wear so all four last their full life — skipping it can halve tire lifespan.',
+  supplies:['Jack + 2 jack stands (or 4)','Lug wrench or breaker bar','Torque wrench (lug nut spec is in the manual, usually 80–100 ft-lb)','Wheel chocks'],
+  steps:['Easiest: have it done with each oil change — most shops include it free or cheap. Mark done here with the date.','DIY: park level, chock the wheels, crack each lug loose BEFORE lifting.','Lift and support on jack stands at the frame jack points (never work under a car on a jack alone).','Rotation pattern: non-directional tires — fronts go straight back, rears cross to the front (X pattern for FWD is rears crossing forward). Directional tires (arrow on sidewall): front-to-back same side only.','Hand-thread lugs, snug in a star pattern, lower the car, then torque to spec in a star pattern with the torque wrench.','Set all pressures afterward (fronts/rears may differ).','Repeat/schedule for the second car.'],
+  tip:'While the wheels are off, look at the brake pads through the caliper — free inspection. Less than ~4mm (about 3 stacked pennies) of pad = start pricing brakes.' },
+
+{ id:'car-wipers', months:6, area:'auto', domain:'auto', time:'10 min', video:'how to replace windshield wiper blades',
+  title:'Replace wiper blades',
+  why:'Rubber blades bake and harden — especially through summer — and you discover they\'re dead in the first fall downpour. Streaking, chattering, or missed strips mean they\'re done. Cheap and 5 minutes per car.',
+  supplies:['Correct blade sizes (driver and passenger often differ; check the lookup book at the store or the manual — note yours here)','Rear wiper blade if hatchback/SUV'],
+  steps:['Buy the right sizes — auto parts stores have a lookup and will often install them free.','Lift the wiper arm away from the glass, press the release tab on the old blade, slide it off.','Slide the new blade on until it clicks. Gently lower the arm (never let it snap onto glass).','Do both fronts and the rear if you have one.','Spray washer fluid and run them — should be silent and streak-free.','Clean the windshield inside and out while you\'re at it (a clean windshield noticeably reduces night glare).','Repeat for the second car.'],
+  tip:'Wipe the rubber edge with a damp paper towel monthly — it doubles blade life by removing embedded grit.' },
+
+{ id:'car-engine-filter', months:6, area:'auto', domain:'auto', time:'10 min', video:'how to check and replace engine air filter',
+  title:'Check engine air filter',
+  why:'A clogged air filter chokes the engine, hurting acceleration and mileage. Check every 6 months; most need replacing every 15,000–30,000 miles — more often if you drive dusty roads.',
+  supplies:['Replacement filter if dirty (~$15–25, exact fit by car model — note the part number here after the first one)'],
+  steps:['Engine off. Open the black plastic airbox under the hood (usually 2–4 metal clips or screws) — it\'s the big box connected to a duct from the front grille.','Lift out the pleated filter, noting which way it sits.','Hold it up to bright light: if light passes through, it\'s fine. Dark, matted, or full of leaves/debris — replace.','Tap it gently on the ground to knock loose dust if reusing (don\'t compressed-air it — that tears the media).','Drop the filter in (same orientation), clip the box closed — make sure it seats fully with no gaps.','Repeat for the second car.'],
+  tip:'This is the single easiest DIY on a car and shops charge real money for it — the filter costs less than their labor line.' },
+
+{ id:'car-cabin-filter', months:12, area:'auto', domain:'auto', time:'15 min', video:'how to replace cabin air filter behind glove box',
+  title:'Replace cabin air filter',
+  why:'This filter cleans the air YOU breathe in the car and keeps the AC blowing strong. A clogged one causes weak airflow, musty smells, and foggy-window struggles. Most owners never change it; shops upcharge heavily for it.',
+  supplies:['Cabin air filter for your model (~$10–20; note the part number here after the first swap)'],
+  steps:['Most cars: it\'s behind the glove box. Open the glove box, squeeze its side stops (and unhook the damper arm if present) so it swings all the way down.','Slide the filter cover latch open, pull out the old filter — brace for the leaves and dust.','Note the airflow arrow direction on the frame, slide the new filter in matching it.','Reattach the cover and re-hang the glove box.','Test: fan on high — airflow should be noticeably stronger if the old one was dirty.','Repeat for the second car.'],
+  tip:'Musty AC smell that a new filter doesn\'t fix: run the fan on high with AC off for the last minute of your drives for a week — it dries the evaporator that mildew grows on.' },
+
+{ id:'car-inspect', months:12, area:'auto', domain:'auto', time:'30 min DIY look + shop visit', video:'how to inspect brake pads belts hoses coolant',
+  title:'Annual once-over: brakes, belts, hoses, coolant',
+  why:'One annual bumper-to-bumper look — yours plus a pro\'s — catches the wear items (pads, belts, hoses, aging coolant) while they\'re scheduled repairs instead of roadside emergencies.',
+  supplies:['Flashlight','Coolant test strips (optional, ~$10)','Phone for photos/notes'],
+  steps:['Brakes: look through each wheel\'s spokes at the pad on the caliper — under ~4mm = plan replacement. Listen: squealing = wear indicator; grinding = metal-on-metal, stop driving and fix now.','Serpentine belt (engine off!): twist it slightly — cracks, glazing, or fraying edges = replace. Squeal at cold start is a classic sign.','Hoses (engine cold): squeeze radiator hoses — should be firm, not crunchy or mushy; look for bulges and seepage at clamps.','Coolant: test strip or look — it should be bright, not brown/rusty. Coolant wears out (typically 5 yr/100k first change — check manual).','Check the manual\'s severe-service items you might be due for: brake fluid (~3 yr), transmission fluid, spark plugs.','Anything questionable → book a shop inspection; many do a full look-over for the cost of an oil change.','Repeat for the second car.'],
+  tip:'Do this a month before any road-trip season, not after — every finding is cheaper as an appointment than as a tow.' },
+
+{ id:'car-emergency', months:12, area:'auto', domain:'auto', time:'20 min', video:'car emergency kit essentials what to keep in your car',
+  title:'Refresh emergency kit & check spare tire',
+  why:'The kit only works if the water isn\'t years old, the jump pack is charged, and the spare actually holds air. An annual refresh keeps "prepared" true.',
+  supplies:['Per car: jumper cables or lithium jump pack','Flashlight + batteries','First-aid kit','Water bottles & shelf-stable snacks','Blanket, phone cable, tire inflator or sealant, reflective triangle/vest','Ice scraper (winter), work gloves'],
+  steps:['Pull the kit out of each trunk. Replace expired water, snacks, and first-aid items.','Charge the lithium jump pack (do this 2–3× a year — a dead jump pack is dead weight).','Check the spare tire\'s pressure (donuts typically need 60 PSI — printed on it) and confirm the jack and lug wrench are present and you know where the tow hook / key-lock lug adapter is.','Test the flashlight; swap its batteries.','Confirm registration & insurance cards in the glove box are current.','Repeat for the second car.'],
+  tip:'Also stash a small umbrella and a $20 bill in each car — the two things you miss most often.' },
+
+{ id:'car-wax', months:12, area:'auto', domain:'auto', time:'2–3 hr', video:'how to wax a car for beginners by hand',
+  title:'Wax / paint sealant',
+  why:'Wax is sunscreen for clear coat — it blocks UV fading and makes bird droppings, sap, and brake dust rinse off instead of etching. Once or twice a year keeps a garage-kept car looking new for a decade.',
+  supplies:['Car wax or (longer-lasting) synthetic paint sealant','Foam applicator pads','Clean microfiber towels (several)','Clay bar kit (optional, if paint feels rough after washing)'],
+  steps:['Wash and fully dry the car first (see the wash task). Work in the shade — your garage with the door open is ideal.','Feel the paint with the back of your fingers: rough/gritty = clay bar first (lubricated, light passes) for a glass-smooth base.','Apply wax/sealant with the foam pad in thin, even coats, one panel at a time. Thin is the trick — thick doesn\'t work better, it just hazes.','Let it haze per the label (usually 5–15 min), then buff off with clean microfiber, turning the towel often.','Skip plastic trim and rubber (it stains them white); wipe any smears off trim immediately.','Do the headlights too — sealant slows the yellowing/hazing that ruins night vision.','Repeat for the second car (or alternate: one car per session, twice a year each).'],
+  tip:'Water no longer beading on the hood = the wax is gone; that\'s your re-apply signal regardless of the calendar.' },
+
+{ id:'car-admin', months:12, area:'auto', domain:'auto', time:'30 min', video:'car maintenance schedule explained by mileage',
+  title:'Registration, inspection & insurance review',
+  why:'The paperwork side of car ownership: lapsed registration is a ticket, missed state inspection is a fine, and auto-renewed insurance quietly creeps up ~10–20% for loyal customers.',
+  supplies:['Registration renewal notices','Insurance policy declarations page','Your car manuals (for the long-interval maintenance table)'],
+  steps:['Check both cars\' registration expiration dates; renew online if due within 60 days.','Check state inspection/emissions due dates if your state requires them.','Insurance: pull your current premium and get 2–3 competing quotes (15 min online). Same coverage numbers, apples to apples. Switch or call your insurer to match.','Review each manual\'s long-interval items against your mileage: brake fluid (~3 yr), coolant, transmission fluid, spark plugs, differential fluid — schedule any that are due.','Log both cars\' current mileage here (helps you predict what\'s coming next year).','Check for open recalls: enter each VIN at nhtsa.gov/recalls — recall repairs are always free.'],
+  tip:'Set both cars to the same renewal rhythm where you can — one annual "car paperwork day" beats four scattered deadlines.' },
+
+/* ================================ HEALTH ================================ */
+{ id:'health-dental', months:6, area:'health', domain:'health', time:'1 hr appointment',
+  title:'Dental cleaning & checkup',
+  why:'Twice-yearly cleanings remove the tartar you can\'t brush off and catch cavities while they\'re small fillings instead of root canals. Most dental insurance covers two cleanings a year at 100% — skipping them is leaving paid-for care on the table.',
+  supplies:['Insurance card','List of any sensitivity, pain, or bleeding-gum spots you\'ve noticed','Your current medications list (some affect dental care)'],
+  steps:['Book the appointment — if you don\'t have a dentist, your insurer\'s website lists in-network ones.','Before you go: note any teeth that have been sensitive to hot/cold/sweet, or gums that bleed when flossing.','At the visit: get the cleaning, ask about anything they find, and get X-rays when due (usually annually).','Ask the hygienist to show you where you\'re missing when brushing — it\'s usually the same spots every time.','Before leaving, book the next 6-month appointment — future-you will not remember to call.','Mark done here; the app will line up the next one in 6 months.'],
+  tip:'Morning appointments get delayed less. And if it\'s been years since your last visit — dentists see that every day; just book it.' },
+
+{ id:'health-physical', months:12, area:'health', domain:'health', time:'1 hr + lab visit',
+  title:'Annual physical & blood work',
+  why:'The annual physical is where silent issues — blood pressure, cholesterol, blood sugar, thyroid — get caught years before symptoms. Preventive visits are covered 100% by most insurance plans under ACA rules.',
+  supplies:['Insurance card & photo ID','List of current medications and supplements with doses','Family health history updates (new diagnoses in parents/siblings)','Your list of questions — write them down, you will forget'],
+  steps:['Book with your primary care doctor (or establish one — check your insurer\'s directory). Book labs for before the visit if your doctor prefers reviewing results with you.','If blood work includes a lipid panel or fasting glucose, fast 8–12 hours beforehand (water is fine — hydrate well, it makes the blood draw easier).','Bring up anything you\'ve been sitting on: sleep, stress, that thing you Googled. This is the visit for it.','Ask what your numbers are and what they were last year — trends matter more than single values. Ask for a portal copy.','Confirm you\'re current on age-appropriate screenings and vaccines (Tdap every 10 yrs, and screenings your doctor recommends by age/history).','Book any referrals (derm, eye) while scheduling momentum is high. Mark done here.'],
+  tip:'Keep a running note on your phone all year titled "for the doctor" — anything odd goes in it. Best 30 seconds of health admin there is.' },
+
+{ id:'health-eye', months:12, area:'health', domain:'health', time:'1 hr appointment',
+  title:'Eye exam',
+  why:'Eye exams check far more than glasses prescriptions — they catch glaucoma, retinal issues, and even early diabetes and high blood pressure (the retina is the one place blood vessels are visible directly). Screen time makes prescriptions drift faster than people expect.',
+  supplies:['Vision insurance card (often separate from medical)','Current glasses and/or contact lens boxes (so they know your current prescription)','Sunglasses for the drive home if your pupils get dilated'],
+  steps:['Book with an optometrist (routine) — vision plans typically cover one exam per year.','Mention: headaches, eye strain, dry eyes, night-driving glare, or more frequent squinting at screens.','Get the full exam including the retinal check (dilation or retinal photo).','Ask whether your prescription actually changed enough to need new lenses — sometimes it hasn\'t.','Contact lens wearers: this is when your fitting/prescription renews (it legally expires annually).','Mark done; the app queues next year\'s.'],
+  tip:'20-20-20 for screen strain: every 20 minutes, look at something 20 feet away for 20 seconds. Cheap, and it works.' },
+
+{ id:'health-derm', months:12, area:'health', domain:'health', time:'30 min appointment',
+  title:'Skin check (dermatologist) + monthly self-checks',
+  why:'Skin cancer is the most common cancer — and the most curable when caught early. An annual full-body check by a dermatologist takes 15 minutes; melanoma caught early has a ~99% survival rate.',
+  supplies:['Insurance card (may need a referral — check your plan)','Notes/photos of any moles or spots that changed this year'],
+  steps:['Book an annual full-body skin exam with a dermatologist (book far ahead — derm wait times are long; put it on the calendar as soon as you mark this done).','Before the visit, note anything matching the ABCDEs: Asymmetry, Border irregularity, Color variation, Diameter >6mm (pencil eraser), Evolving/changing.','At the visit, point out anything new or changed — don\'t assume they\'ll spot it.','Between visits, do a quick monthly self-scan after a shower (use a mirror or phone camera for your back and scalp).','Daily habit that outweighs everything else: SPF 30+ on face/neck/hands.','Mark done here.'],
+  tip:'The spot to watch isn\'t the dark scary-looking mole you\'ve had forever — it\'s the one that CHANGED. Photos with a coin for scale make change obvious.' },
+
+{ id:'health-flu', months:12, area:'health', domain:'health', time:'15 min',
+  title:'Flu shot (and vaccine check)',
+  why:'The flu costs you 1–2 miserable weeks a year on average odds; the shot costs 15 minutes and is free with insurance at any pharmacy. September–October timing gives you protection through the whole season.',
+  supplies:['Insurance card','Short sleeves'],
+  steps:['Book at any pharmacy (walk-ins usually fine) or your doctor\'s office — ideally September/October.','While you\'re there, ask what else you\'re due for: COVID booster, Tdap (every 10 years), and age-appropriate others.','Get it in your non-dominant arm; move the arm around that day to reduce soreness.','Update your vaccine record (photo of the card in your phone works).','Mark done here — the app will resurface it next fall.'],
+  tip:'Mild arm soreness or feeling off for a day = normal immune response, not the flu. The shot cannot give you the flu.' },
+
+{ id:'health-toothbrush', months:3, area:'health', domain:'health', time:'2 min',
+  title:'Replace toothbrush / brush head',
+  why:'After ~3 months, bristles are frayed and clean dramatically worse — dentists\' most-repeated cheap advice. Also replace after any illness.',
+  supplies:['New toothbrush or electric brush head (buy multi-packs)','Floss restock while you\'re at it'],
+  steps:['Swap the brush/head for a fresh one.','Check your floss/picks supply and restock.','If anyone in the house was recently sick, swap theirs too.','Mark done — next reminder in 3 months.'],
+  tip:'Subscribe-and-save on brush heads makes this task automatic — the reminder becomes "open the drawer".' },
+
+{ id:'health-meds', months:6, area:'health', domain:'health', time:'20 min',
+  title:'Medicine cabinet & first-aid audit',
+  why:'Expired meds lose potency (and a few become harmful), and the first-aid kit is always missing exactly what you need. Twice a year keeps the home pharmacy actually useful.',
+  supplies:['Trash bag','Restock list: bandages, antibiotic ointment, pain relievers, antihistamine, thermometer batteries, cold medicine'],
+  steps:['Pull everything from the medicine cabinets and first-aid kit(s).','Check every expiration date. Expired → out. (Most meds: drop at a pharmacy take-back kiosk; FDA flush-list meds like certain painkillers should be flushed; the rest can go in trash mixed with coffee grounds.)','Restock the basics: pain relievers, antihistamines (allergy + reaction), antacids, anti-diarrheal, bandages in real sizes, antibiotic ointment.','Check the thermometer works.','Make sure prescription meds are current and refills aren\'t about to lapse.','Store nothing in the bathroom you rely on long-term — humidity degrades meds; a bedroom closet shelf is better.'],
+  tip:'Keep a mini kit in each car too (see the car emergency-kit task) — audit them the same day.' },
+];
+
+/* Fallback YouTube queries for the original home tasks */
+const VIDEO_Q = {
+  'hvac-filters':'how to change home HVAC air filter',
+  'leak-walk':'how to check house for plumbing leaks under sink toilet',
+  'disposal-drains':'how to clean garbage disposal baking soda vinegar',
+  'washer-clean':'how to clean washing machine tub clean cycle gasket',
+  'smoke-co-test':'how to test smoke detector and carbon monoxide detector',
+  'gfci-test':'how to test and reset GFCI outlet',
+  'dishwasher-filter':'how to clean dishwasher filter',
+  'hood-filter':'how to clean greasy range hood microwave filter',
+  'condensate-line':'how to clean AC condensate drain line with vinegar',
+  'garage-safety':'how to test garage door auto reverse and safety sensors',
+  'fridge-coils':'how to clean refrigerator condenser coils',
+  'fridge-filter':'how to replace refrigerator water filter',
+  'garage-lube':'how to lubricate a noisy garage door',
+  'bath-fans':'how to clean bathroom exhaust fan',
+  'caulk-grout':'how to remove and recaulk shower and tub',
+  'descale':'how to clean showerhead and faucet aerator with vinegar',
+  'attic-check':'attic inspection what to look for homeowner',
+  'ceiling-fans':'how to reverse ceiling fan direction for summer winter',
+  'hvac-tuneup':'what happens during HVAC tune up inspection',
+  'wh-flush':'how to flush water heater and test pressure relief valve',
+  'dryer-vent':'how to clean dryer vent duct',
+  'detector-batteries':'how to change smoke detector battery stop chirping',
+  'washer-hoses':'how to replace washing machine supply hoses',
+  'shutoff-valves':'how to find and turn off main water shutoff valve',
+  'toilet-check':'how to fix running toilet replace flapper dye test',
+  'fire-extinguisher':'how to inspect home fire extinguisher',
+  'garage-balance':'garage door balance test how to',
+  'oven-clean':'how to deep clean oven with baking soda',
+  'condenser-coils':'how to clean outside AC condenser unit coils',
+  'windows-doors':'how to clean window tracks and lubricate door hinges locks',
+};
+function videoFor(t) { return t.video || VIDEO_Q[t.id] || null; }
+function domainOf(t) { return t.domain || 'home'; }
+
+/* ============================== STORAGE ============================== */
+const STORE_KEY = 'homeMaintenanceData_v1';
+let memoryFallback = null;
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* storage unavailable */ }
+  return memoryFallback || { completions: {} };
+}
+function saveData(d) {
+  memoryFallback = d;
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(d)); } catch (e) { /* keep in memory */ }
+}
+let data = loadData();
+if (!data.completions) data.completions = {};
+
+/* ============================== DATE HELPERS ============================== */
+const DAY = 86400000;
+function todayISO() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function parseISO(s) { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function addMonths(dt, m) { const d = new Date(dt); const day = d.getDate(); d.setMonth(d.getMonth() + m); if (d.getDate() < day) d.setDate(0); return d; }
+function fmt(dt) { return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: dt.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); }
+function fmtISO(s) { return fmt(parseISO(s)); }
+function daysBetween(a, b) { return Math.round((b - a) / DAY); }
+
+function freqLabel(m) { return m === 1 ? 'Monthly' : m === 3 ? 'Quarterly' : m === 6 ? 'Semi-Annual' : 'Annual'; }
+function lastDone(task) { const c = data.completions[task.id]; return c && c.length ? c[c.length - 1] : null; }
+function taskStatus(task) {
+  const last = lastDone(task);
+  const today = parseISO(todayISO());
+  if (!last) return { key: 'never', label: 'Not started', sort: 1, detail: 'Never done — tap to see how' };
+  const due = addMonths(parseISO(last), task.months);
+  const days = daysBetween(today, due);
+  const window_ = task.months === 1 ? 5 : task.months === 3 ? 14 : 21;
+  if (days < 0)  return { key: 'overdue', label: 'Overdue ' + Math.abs(days) + 'd', sort: 0, due, detail: 'Was due ' + fmt(due) };
+  if (days === 0) return { key: 'overdue', label: 'Due today', sort: 0, due, detail: 'Due today' };
+  if (days <= window_) return { key: 'soon', label: 'Due in ' + days + 'd', sort: 2, due, detail: 'Due ' + fmt(due) };
+  return { key: 'ok', label: 'Done ✓', sort: 3, due, detail: 'Next due ' + fmt(due) };
+}
+const STATUS_ICON = { overdue: '⚠️', soon: '🔔', ok: '✅', never: '◌' };
+
+/* ============================== RENDER ============================== */
+let filter = 'all'; // all | overdue | soon | 1 | 3 | 6 | 12
+let domain = 'all'; // all | home | auto | health
+const $ = id => document.getElementById(id);
+
+function dTasks() { return TASKS.filter(t => domain === 'all' || domainOf(t) === domain); }
+
+function counts() {
+  let overdue = 0, soon = 0, ok = 0, never = 0;
+  const dts = dTasks();
+  for (const t of dts) {
+    const s = taskStatus(t).key;
+    if (s === 'overdue') overdue++; else if (s === 'soon') soon++; else if (s === 'ok') ok++; else never++;
+  }
+  const yr = String(new Date().getFullYear());
+  let doneThisYear = 0;
+  for (const t of dts) for (const d of (data.completions[t.id] || [])) if (d.startsWith(yr)) doneThisYear++;
+  return { overdue, soon, ok, never, doneThisYear };
+}
+
+function renderSegs() {
+  const defs = [['all','All'],['home','🏠 Home'],['auto','🚗 Car'],['health','❤️ Health']];
+  $('segs').innerHTML = defs.map(([f,l]) => `<button class="seg ${domain===f?'sel':''}" data-d="${f}">${l}</button>`).join('');
+  document.querySelectorAll('.seg').forEach(el => el.onclick = () => { domain = el.dataset.d; renderAll(); });
+}
+
+function renderStats() {
+  const c = counts();
+  $('stats').innerHTML = `
+    <div class="stat ${filter==='overdue'?'sel':''}" data-f="overdue"><div class="n ${c.overdue?'crit':''}">${c.overdue}</div><div class="l">Overdue</div></div>
+    <div class="stat ${filter==='soon'?'sel':''}" data-f="soon"><div class="n ${c.soon?'warn':''}">${c.soon}</div><div class="l">Due soon</div></div>
+    <div class="stat ${filter==='ok'?'sel':''}" data-f="ok"><div class="n ok">${c.ok}</div><div class="l">On track</div></div>
+    <div class="stat" data-f="all"><div class="n">${c.doneThisYear}</div><div class="l">Done in ${new Date().getFullYear()}</div></div>`;
+  document.querySelectorAll('.stat').forEach(el => el.onclick = () => { filter = (filter === el.dataset.f) ? 'all' : el.dataset.f; renderAll(); });
+}
+
+function renderChips() {
+  const defs = [['all','All'],['1','Monthly'],['3','Quarterly'],['6','Semi-Annual'],['12','Annual']];
+  $('chips').innerHTML = defs.map(([f,l]) => `<button class="chip ${filter===f?'sel':''}" data-f="${f}">${l}</button>`).join('');
+  document.querySelectorAll('.chip').forEach(el => el.onclick = () => { filter = el.dataset.f; renderAll(); });
+}
+
+function cardHTML(t) {
+  const s = taskStatus(t);
+  const a = AREAS[t.area];
+  const last = lastDone(t);
+  return `<div class="card" data-id="${t.id}">
+    <div class="emoji">${a.emoji}</div>
+    <div class="mid">
+      <div class="t">${t.title}</div>
+      <div class="meta"><span>${a.name} · ${freqLabel(t.months)}</span><span>${last ? 'Last: ' + fmtISO(last) : ''}</span></div>
+    </div>
+    <span class="badge ${s.key}">${STATUS_ICON[s.key]} ${s.label}</span>
+  </div>`;
+}
+
+function renderList() {
+  let tasks = dTasks();
+  if (['overdue','soon','ok'].includes(filter)) tasks = tasks.filter(t => taskStatus(t).key === filter);
+  else if (filter !== 'all') tasks = tasks.filter(t => String(t.months) === filter);
+
+  let html = '';
+  if (filter === 'all' || ['overdue','soon','ok'].includes(filter)) {
+    // group by cadence
+    for (const m of [1,3,6,12]) {
+      const group = tasks.filter(t => t.months === m).sort((a,b) => taskStatus(a).sort - taskStatus(b).sort);
+      if (!group.length) continue;
+      html += `<div class="group-h"><h2>${freqLabel(m)}</h2><span class="count">${group.length} task${group.length>1?'s':''}</span></div>`;
+      html += group.map(cardHTML).join('');
+    }
+  } else {
+    const group = tasks.sort((a,b) => taskStatus(a).sort - taskStatus(b).sort);
+    html += `<div class="group-h"><h2>${freqLabel(Number(filter))}</h2><span class="count">${group.length} tasks</span></div>`;
+    html += group.map(cardHTML).join('');
+  }
+  if (!html) html = '<div class="empty">Nothing here — you\'re all caught up 🎉</div>';
+  $('list').innerHTML = html;
+  document.querySelectorAll('.card').forEach(el => el.onclick = () => openTask(el.dataset.id));
+}
+
+function renderAll() { renderSegs(); renderStats(); renderChips(); renderList(); }
+
+/* ---------- Landing page ---------- */
+function showList(d, f) {
+  domain = d; filter = f || 'all';
+  $('landing').style.display = 'none';
+  $('listView').style.display = '';
+  renderAll();
+  window.scrollTo(0, 0);
+}
+function showLanding() {
+  $('listView').style.display = 'none';
+  $('landing').style.display = '';
+  renderLanding();
+  window.scrollTo(0, 0);
+}
+function renderLanding() {
+  let gOd = 0, gSoon = 0;
+  TASKS.forEach(t => { const k = taskStatus(t).key; if (k === 'overdue') gOd++; else if (k === 'soon') gSoon++; });
+  const now = new Date();
+  const y = String(now.getFullYear());
+  const ym = y + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  let doneMonth = 0, doneYear = 0;
+  for (const t of TASKS) for (const d of (data.completions[t.id] || [])) {
+    if (d.startsWith(y)) doneYear++;
+    if (d.startsWith(ym)) doneMonth++;
+  }
+  const statsHtml = `<div class="stats">
+    <div class="stat" data-f="overdue"><div class="n ${gOd ? 'crit' : ''}">${gOd}</div><div class="l">Overdue</div></div>
+    <div class="stat" data-f="soon"><div class="n ${gSoon ? 'warn' : ''}">${gSoon}</div><div class="l">Due soon</div></div>
+    <div class="stat"><div class="n">${doneMonth}</div><div class="l">Done this month</div></div>
+    <div class="stat"><div class="n ok">${doneYear}</div><div class="l">Done in ${y}</div></div>
+  </div>`;
+  const doms = [['all','🗂️','All tasks'],['home','🏠','Home'],['auto','🚗','Car'],['health','❤️','Health']];
+  $('landing').innerHTML = statsHtml + doms.map(([d, e, l]) => {
+    const ts = TASKS.filter(t => d === 'all' || domainOf(t) === d);
+    let od = 0, soon = 0, never = 0;
+    ts.forEach(t => { const k = taskStatus(t).key; if (k === 'overdue') od++; else if (k === 'soon') soon++; else if (k === 'never') never++; });
+    const parts = [ts.length + ' tasks'];
+    if (od) parts.push('<span class="crit">⚠️ ' + od + ' overdue</span>');
+    if (soon) parts.push('<span class="warn">🔔 ' + soon + ' due soon</span>');
+    if (!od && !soon) parts.push(never ? never + ' not started' : '✅ all on track');
+    return `<div class="land-card" data-d="${d}">
+      <div class="land-emoji">${e}</div>
+      <div><div class="land-t">${l}</div><div class="land-sub">${parts.join(' · ')}</div></div>
+      <div class="land-arrow">›</div>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('.land-card').forEach(el => el.onclick = () => showList(el.dataset.d));
+  document.querySelectorAll('#landing .stat[data-f]').forEach(el => el.onclick = () => showList('all', el.dataset.f));
+}
+$('backBtn').onclick = showLanding;
+
+/* ============================== TASK SHEET ============================== */
+let openId = null;
+function openTask(id) {
+  openId = id;
+  const t = TASKS.find(x => x.id === id);
+  const s = taskStatus(t);
+  const a = AREAS[t.area];
+  const hist = (data.completions[id] || []).slice().reverse();
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">${a.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <h2>${t.title}</h2>
+        <div class="freq-line">${a.name} · ${freqLabel(t.months)} · ⏱ ${t.time}</div>
+      </div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    <div class="status-strip ${s.key}">${STATUS_ICON[s.key]} ${s.detail}</div>
+    <div class="sec"><h3>Why it matters</h3><div class="why">${t.why}</div></div>
+    <div class="sec"><h3>Supplies — gather these first</h3><div class="supplies">${t.supplies.map((sp,i)=>`<div class="supply"><input type="checkbox" id="sp${i}"><label for="sp${i}">${sp}</label></div>`).join('')}</div></div>
+    <div class="sec"><h3>How to do it</h3><ol class="steps">${t.steps.map(st=>`<li><span>${st}</span></li>`).join('')}</ol>
+    ${videoFor(t) ? `<a class="video-btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(videoFor(t))}"><span class="yt">▶</span> Watch how-to videos on YouTube</a>` : ''}
+    ${t.tip ? `<div class="tip"><b>💡 Tip:</b> ${t.tip}</div>` : ''}</div>
+    <div class="sec"><h3>History</h3><div class="history">${hist.length ? hist.slice(0,8).map((d,i)=>`<div class="h-row"><span>${i===0?'Last done':'Done'}</span><span>${fmtISO(d)}</span></div>`).join('') : '<div class="h-none">No completions recorded yet.</div>'}</div></div>
+    <div class="actions">
+      <button class="btn primary" id="doneBtn">✓ Mark done today</button>
+      <div class="date-row" id="dateRow">
+        <input type="date" id="doneDate" max="${todayISO()}">
+        <button class="btn primary" id="doneDateBtn">Save</button>
+      </div>
+      <button class="btn ghost" id="otherDateBtn">Done on a different date…</button>
+      ${hist.length ? '<button class="btn danger-ghost" id="undoBtn">Undo last completion</button>' : ''}
+    </div>`;
+  $('closeBtn').onclick = closeTask;
+  $('doneBtn').onclick = () => markDone(id, todayISO());
+  $('otherDateBtn').onclick = () => { $('dateRow').classList.add('open'); $('otherDateBtn').style.display = 'none'; $('doneDate').value = todayISO(); };
+  $('doneDateBtn').onclick = () => { const v = $('doneDate').value; if (v) markDone(id, v); };
+  const ub = $('undoBtn'); if (ub) ub.onclick = () => undoLast(id);
+  $('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  $('sheet').scrollTop = 0;
+}
+function closeTask() { $('overlay').classList.remove('open'); document.body.style.overflow = ''; openId = null; }
+$('overlay').addEventListener('click', e => { if (e.target === $('overlay')) closeTask(); });
+
+function markDone(id, dateISO) {
+  if (!data.completions[id]) data.completions[id] = [];
+  data.completions[id].push(dateISO);
+  data.completions[id].sort();
+  saveData(data);
+  const t = TASKS.find(x => x.id === id);
+  const next = addMonths(parseISO(dateISO), t.months);
+  closeTask();
+  renderAll();
+  toast('✓ Saved — next due ' + fmt(next));
+}
+function undoLast(id) {
+  const c = data.completions[id];
+  if (c && c.length) { c.pop(); saveData(data); openTask(id); renderAll(); toast('Last completion removed'); }
+}
+
+/* ============================== BACKUP ============================== */
+$('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ app: 'home-maintenance', exported: todayISO(), data }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'home-maintenance-backup-' + todayISO() + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Backup downloaded');
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result);
+      const d = obj.data && obj.data.completions ? obj.data : (obj.completions ? obj : null);
+      if (!d) throw new Error('bad file');
+      data = d;
+      saveData(data);
+      renderAll();
+      toast('✓ Data restored');
+    } catch (err) { toast('Could not read that backup file'); }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+};
+
+/* ============================== MISC ============================== */
+let toastTimer;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+$('todayLabel').textContent = new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+
+/* Embedded logo (also used as favicon) */
+const LOGO_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAIAAABt+uBvAAAjOUlEQVR42u19eXwUVbb/vbeqq/c1naSzryQECFtkUcEAQQE3XHCU+Y0KyqY+QMdRB5mnzigOgtvoIKgoCDiAcUF4KIoMsvhQwZGICpEkZN876fTeXXXveX/c7iYssmSIM+/9uOTDJ9SnuvrWt84953u+59QFM8bQxYEQQhghOPUouQhMdMBpMbsI0FkwuwjQWcZFgC4CdBGgiwD9K4f4r48UALG/TwixGMf+/v8OIADgiBBCCCFnjrQMWORkTBD+Pw0Qx+UkUPx+v8fj8Xq9wWBQlmUAUKlUarVGp9MaDUa9QS8IQuxkSimH9f8aQDF74b83NjZVV1fX1tS2tLZ6PG6fz8+h4adhjDAmoihoNBqDwRgXZ0tLS8vMzEhJSdVqNTGkMMa/wALEvZ2LdYemubm5rOy7w4cPNzc3BwJBQrAgiAIhRBAEAQNE3A7/HAOglDLKGKOMMUEQrFZbTk7WwIGD8vL6iKLIYepVa8K9DRC/MYRQVVXV7t17fvrpJ78/oFKJoqgiBCOEALi9YO6jo2hifryb58YIgSwr4XAYY5SUlDxy5PBhw4ZptVpud71nSr0LEMa4qbn5008+LSv7DgA0GjUhAgeOw0EIYYwGgyEAEASi0WgwxoFAkDGKMVZLakEUGGPcrDBCGGNAEA6H5bCckJhQUjJu5MiR/IK9hFGvAMQY40919+7dn3zyqd8f0Ot1GGPGuj1qAExwOKzo9drBgwbZ4+2tLa3/+PbbUCg8ePCgjIx0j8dbdrDM2dEhSRIwFl15CBDi3keWw+FQeEDhgFtumWIyGhEA7ubOey5w9LaTji0rxtjnn+8KhUIGg55ShhBHBxDCHD5ZVqxW84wZdycmJvLP9h/Q3+32DB8+jP9z9OhRq1atrqmpVaslYBA1IUAIGGOiKKol9fffHZow4SqLxYIQAv6wz9mU4Bzgu8AejlIqCML27dunTp3a3tZ25513MAYxI436YOBzC4fD11xzTWJioiIrPH737dt3+PBhlDJKqSIrRqPxxhtvJIQAALcgfgHumggh7q6u62+YnJ6eXjnvvqblyzB32AAXJrxc8FSDUiqK4tq1a2fNmvXpp5/Mnj07Ozv7xhsnu90eQkjUEwMChBCmimI2m3JysgEAEywIwhdf/PexY9WMMYwRIUQQBQBISUlOTEyQZRljghDmCGGECBF8Xt8llwwtKRlX/6c/tr/9t/qnnqx57A+RJXyBMLqQAHF0Vqx49aGHH5YkKTk5ec/evY888siYMWNGDB/u9/sIwZEwhSMWHEUNECDG2K5duysqKri9AABjjJseIQRHGTSHmAgkHA4lJSbeNm2as7S0cfkrUlKSaLW1vPrqsQfmX1iMyAVEZ82aNU888bjFbGYAgUAwLi5u5crX165de+e0OxwORyAQwJigCBkEQRA8Hk9raxs3ltbWVqvV4vP5ZFl+6601fKkKguB2u51OpyiKAIyvTYyxolBJEKbdM5sd+u7Y7x8SjSZQKMiKKj6+fcOGmgWPYEIQYxcEowsQxTg6n3766fTp0w0GAwAwRvncGGPhcGjL5i3ZOTl//vMzACzG6zDG4XC4b35+Tm4uY/Snn3664oriurrauDj79u3b++TmWm02IgiNDQ1lZWWSJMU4EcbY7/VNm3n34MzMsglXKo1NRKdDjEZYlUolt7WmPPpoyvwHmKKcb1y78BbEo0nF0Yp58+ap1epojI8kXoIgIITvuvtuhNC0aXeEgiGMMYpyQo1Gc+j7H5qamhLiE0aMGDlgQH+j0bR9+/apU2/L75tvt9u9Hs83B75Rq9XRjB8RQrwez8RJEwYXFh6ZM1uuriF6PWI04vYxAkUR4+yNS5d2frKNiCKi9F8JEJ93KBS6//75brdbkiRFUQBiSRVijOn1+oaG+hkzZhQUFEycNNHr8ZLIU8WMMZ1OW19fn5WdVVQ0FABSkpPVak1WVtagQYMGDRpYW1urVqt5foYQEgTi8/oGFhZOnDSp7qmn3Nu3C1YrUpRu8ghGAAiAaLQ1v38kVF+PBQH9c0tEePzxx/8J8wFRFJ5//vkNGzfabLZIwokA8yCJIygYDPpDh74LBkMzZ85oaGhobGxQq9UADGMsCEKXq6vsu+8G9B+g0+m0Gm1Bv756vd7n873yyvLq6mqNRgPAXQ8Jh8MJ9rhZ98/3btlS+9h/quLiEKMMI4xJNPRzpgVYkmhHR7iu1jb5hkg688v7IE4IDx06dO2116pUIgACYHA6BoYxIkTo6Oh48403J98wedFTT7u6XJIkMQYYIUJIKBSKT4ifPn1aQkICQsjr9a5evbqq8phWr2OUcfthwBBl8x7+nb2j4/vrr8MIASEIwIjAGw6DWo0gwrKjj16gnR05y1fYJt8AioJ66ox6vsR4hF60aFEgEMAYR1wPIIyQIAg81gqCIAgEAAGA0WicN39eeXn5zFkzo9kTAoQYMI1W09ratmLFq7W1tU6nc/nyFceOVesNeog9PIwDPv+UqbclGwxHZt4NoSATRUGRNQh9SASlcCCRZYTxcTkNACglGk3j889RnxcJQo8jGulx5CKE7Ny587PPPjOZTIpCEQJAQAimlHV0dIRCIUJIR4fT5erCOBLpwuHw9OnTzGbT1Km3BfwBzDP6iDPS+by+N95YtXz5q21tbXq9AQAwwhghgRCvxzOuZNwlQ4ccve/eYEUF0+q0wQBJSX7Q4z1w5VWOfgVKIIgwxigqC2CEAbBW5ztS3rZhA8YYerpQeggQp3PLli3rLseIghgIBERR/NOf/pSXl9fV5Vq48A+zZs0KhcIYY0apwWA4cqR8zuzZRUVFY8eN9bg9okoAYMFgyONxK1TxeNxOp5Mq1ON2B/wBBkxUiT6fr19B38k3TG54dqnzo49Apzcj1jpkyIzOLu/IS59NTupct44YjYgyBAA4mkhhBIwKOl37urUs4Mc9NSKxx97nwIEDX3zxhdFooJQCApUoejxei8W8cuUbo0aNuuGGG+65Z87cuXMbGhreeGOlWi0BQoqixMXFvf/BB4WFhQ/+7neNjY0//PCD2WTOzc3Jzs5yOBwGgwFj7Pf729vbq6tramtrne3OxPj422fPcn2yre7FF4hKTEhJ+mrQkD/s/FwyGj8oGdv13LNhrVbECKKJyPGsnwHRaQPl5a7Pttuum8wo7QEt6lE2DwghtGHDhnA4bDAYEFJUosrlcmVkpK9du66goCAcCqempq5fv0FRlPb2dlFUQdRbU6rY7fYlS5cUFPSbNu3OXZ/vGjxkcFJS0mm/p6ur68DX+/MK+qqO/vTDf9wrKjTphuv/Zol74d33DDrtm3ffxV54wQdIJYhKIACMYhRNaUWBaDTcphAhHe+/b7tuMu6R9ij2gPsIotDV1bVjxw6dTkcpJURod7YPGTx4zZq1qampsiyrJBWlVK/TY4IRQj6fT61WQzS2iaLo8Xg+3/X51ddcPenqSfyaPJhihGNJFMbYbDaXXDkeIdT41lsmUdA/8cSi8qMfvP22SpKenzs3cc1bze4utcFI/T5NZpZoNgHGBBDGSHa7/ZWVgk6HGCM6vffAgVBDvTolFRg735Av9mB9EUK+/PLL2tpas9mMEHK73cVXFK9evdpisSiKwtVi7qQYZYWFhXPmzFm58nWz2UwpE0Wxra1t9qzZTz75JKWUi4oY426+7Pgd8HwVGCTfeacnL+++l176x+49GKPHH3yw6NNt1T8d1djjFKczfs4cc1FRsKYWazQIAQ2FVI6k0I8/NC97hZjNWMRye7t7z57426YCY+e7ynoomO3Zs4fnk+6urpEjRmzatAkhRBXK0enOAyRJWrx4sSzLq1evstvj29rabrvtthdefJEXvM4quWOMRUnc/tmORxYu7GptBYzumz9/cvmRil27dYkJ1O83XHKJvl//n35zO4PIEqMMCQLOee113SVFwe+/x1odYOz+Ym/8bVN7wBjPm0nzW3ruuedaW1tEUYUxDgSDVVVVxcXFKklVVVU1adLEpqbmRx5+2JGUlJ+fDwAvv/zyhx9+SCnz+XyFhQPWrFkjCMJZ0eGhgBCyYsWrv//9Asyoz++9YcqU3+l0Va+/rk5MkN0ex733ZTy1yLNnF9aoTZcM0/frryvobxw0UJ2SQlXq7D//GSmKZ98+olFDKGSfOpWopPMl1uL5OiBCSGtra3V1tSSpAZhKpWppad6xY8eiRYsQQqKocjiS4uPjHUlJPAUnhHz99Vfl5eVJSUnhcGjp0me1Wq2iKMKJpg4MGJxAVURRDAQCjy78Q2lpqd1u72hvu2T4iGcefbR28nVEr2OMYUblxkYsCI775ifP/+3JU1UUFgyEW1oQo0TShRsbQ7W12j555wvQ+Tl2nkvU1NR0dnZG0wtQqVQmkyn62GlbW5vH4+nocIbDYc6ndTq9Xq9zdXbefPPNRUVFp6LDGCMCEU8c1dU1/+83vyl991273e7ucqWkpq74618NiYmWu2ZAMIgFgYWCppEjGl5Z9sPYUYHKShYOs2CIBYMQDgerKg+NGdX05irjpZdCKIREkfl8oapjp20CuKAWhAAhVFtbGwqFdDodQhEVhkYHQshms6lUKpstTqPRKIrCWayiUJ1ON2PGzNPOTxCEI+Xln23/rLqmWhCEIYOHWK2WP/7pyaampgS73efzqtXq1157LSklhQEk3Hqrc+XrcpeLiCINBlPuvS9+yhRtTk73C2qyc3JXrVUnJbWVvgOEIIQYpaG6ml4P8/z2mpqaKKURyoERQkAI0el0CKHMzMwtW7YghO6///7YpyS12ufzXXbZZQMHDgQAgQgnXA6hZ597btWq1T6fjxDCAN55p5QQQZJUZrM5FAoFg8GVK1cWFhYqsiJgLJrNxjHF7evXYyKEamoEo5FWVra9vQ6LqoiFYwJy2DBkiGAwhI8d45VJhFC4paXXAeJrt7Oz8zhjBSQIotvtLi0tldRqiFbEYtVOjHF19TGE4NJLR2KMYzyA801CyGOPPf76ypUJCQl2u51/KhLdAagiu7o6n1709JVXXqnIssAFMADj5aPb3/4b1mo8X37ZuXVLw4t/8R/Yj3V6zChCGAhhPo+p+ArHrHu8X+4TtFrEAGNM3e7eJ4oYI4R4+h4rFoui2NHRMXv27BPPOp76GAwGvV7fv/8A1K3fh6ev27d/tvqttxITHQCMp7WMMUlSS5IKI+hyu2fNnHXnnXdG0Ik2Nuj69hX0ekRI8OjRilmziF6vSknFwBDCEZJptQYOl1fMmkm0OqzWIMYQxhAK/UK52KlFXkKI1WqNJomRswABjtBnkCR1SnJydxrIY/y6t98WRZEQ7Hb7rrxy/J133N7Z2fnc8y/U1dboDQZAKC8vH7rHHYwRQqLdLpjNtLMTq1Si2YIYQ7IMOPKlEaVOEEWzFTGKABBGGOOe6dPnCRAghJBGo+Fh+GeqkdE6euQPQggLgsA/hbvRBZfL9dNPP2m1ukAgkJWV9Ze/vKiWJISQxWKdftddGBNRVO3du3fq1NvwiY1TWKXCAkGigAQBcXIcEUcwjk4yJmIjjLEgAgL4JQDCCCHUv39/Sml7e/uJISlW8Tp+Mp9zOBxKTHRYbbYTLAwhr88ny7IgCIGAPycnRy1Jfr9fFMV+/QosFmsg4CeEBIPBE4vJGAEQtUaw2QJHj2KNFjOGCYkqrpFzIVp/AxRpH4FQWD9wcK8DJAgCANx00012u72xsVGlUsU6DCNqcKwwHF2MvLwzYMCAlJQUxhhPX/mwWiwGg7GlpUWn05UdLKurq0tLS0MIbfrwQ6fTabGYPR5PfHw8QogBCMfxAaKWsl9b6fv6KywIJ8i7OGbmcHw5YwxUEeMTTJePAga/RC4GAFdccUUPPhVzXhhjSqlery8sHFBdXR0XZ3N2dNx998xbfjWlra29tLRUo1EDQoyxSy+79FQXCACa1FRNaup5c5TzF+97KNrTWL3plIV1Ws+FCT4p84pp/rf86lZJkkRRDAaDfr8fIWQymSRJ6nS5Cvr2LX1no0athlMjA8DPqagnNbXE/tkzJ90jgGJ9Ydz6UQ/rKsAYEYS1a9f94bHHtBqNTqcjRMAYyYri7uqy2WxvrV7F/d2599mdS8tPLwMEgBjDolg1fx7RajIXLwFFQUToWYMut6Ntn3zy4gt/qayq5AqRRqMZMWLEwkcf7dMnt7e7EHsBIEqxKDa98Hz9M88ARumPP+6Yc+8/U3jiGIXD4YMHy2pqakRRzM/P69evH+r9Hs1eAIgxLAjtG9ZX//YBwWIBAOrx5Lyy3Hb9ZKAU9fRmYk1p3Y9wroT+1eOMAAGijMaILwbAhDjff+/ojBkqux0TgjBClDJPV/bKVbZrrgXGeowRdCvpn6jA/ovHmeaBCY6pM4QQTAj1+917dsfffBPRGxiliFLBYrFcc5179y4aDCJCztFDUkoVhVKqdG9qifRLC8K/Dzo/a0HcvDs7O5988klFUfx+/+23315cXEwVhSeN35eUBKsqEWPGoYPzP9h8vkJU95gNAOjfeIhnyLm8Xu+6detkRXZ1uoYPH15cXMwABMZoKIR4XzLGQBlwTnQujz1Kmj766KPOzk5RFCdMmGA2m3u1E7x3AMKRxII3tRBMYqkmEIIFIapnRHoVop0VZ0cIY8IYe+KJJw4dOqTRqPfu/cJisfReG3ivARQ1/qiUqhxv5e2WLWOEeQtXJB5DpIWeOxROangtkET6PSISmtVqsdqsOq22uyTAI9fxmMB5KGOMsagocPz4yaSaskj3LMYnncNJPz8evVpEqzsXZ3e2XAzHSPIpPT8II6CC0YS7SR+xr+SteSc5ZoJJ9HdGFaooNIbIz0V67rZPvg6PBvi48HbSrcYIFMY4Ng3+FSe9XHVWjMSze43TrRyeHMnBkHnAwMUvvdRVX/+fjz8hK/IXX3xBKc3IyBg4cODf//73/fv3BwKBjIyMq666KiUlhVIqIOFkV4cQo0wlqcrKyupqayW12uPxFBcX2+12hFB5efmuXbtaWlrUavXAgQPHjx8viiKjlBfa+WNobW397LPPjh07hhDq06fPVVddZbFY+M0Hg8E9e3aHQiGbLe6yyy7bv3//7t27PV5PQnxCSUlJfn7+2Vc3O93gq6O+vj43NzczM9NsNq1a9SYAyOEwANBQ6FBx8YGszP+2x3U8vWjmAw8ghBrqG7799lu9Xq9Wq2+79dYHHnjAaDTqdDqz2Wy1WnNyctauXcvXLGOspKQkISEhIyPj8OHD/Ls2bdqUnJxst8dhjO6//36fzxcOhxcuXJiRkWEyGSVJ0ul0NputpKTkhx9+AABFUXg/5OrVqwsKCiwWi1otSZJktVoLCwu3bNnCWVV9fUNqWqpaLY0ZM+axxx6z2+1arcZoNFpt1pSUlGeeWcwvxX5+iOegQUPMb0P3jCyqSKlE0Ww0CKKAMTYYDAaD/uv9Xze3tMTb4xMdiR1Op9frleXwfffdZzQaJ0+eTBUaNR9QFIUQ8s47pXPn/odGqwkEAouefnrB7xcghB588MFXXnnFaDQmJCTm5uZ2dnbW1NR8882BqVOnfvzxxw6HgxCybt26uXPn6nQ6k8lYVFQEAIcPH25qbJwxY8bGjRuLi4sRAqPBKBBSX1/3lxdf1On1AwcOdLvdTmeHSqV6/PHHNRrtvHnzzrTWTm9BSsSC+vTpk5mZYTabVq1a1d2Cvh9TfCArc1+C3fnUk3MefNCg0zU1NR08eDA+Pj47O9tuj7vlV7ccOnTI5XKVl5ffddddDocjKckxfPhwn8/HLSg+Pj4tLa2pqendd9+12+2pqalmi3nJkiW802Pnzp02my01NXXChAmHDx8GgFAotOyvy9LT041GwyOPPAIAjY2Nffr0cTgcgwYN3LtnDzeZrf/1X/369bPZbOPHj2eMNTY25uXlpaenJSYmjh07dt++fV0uV11d3YIFCxITEzMzM7MyM+vq6gCAKvS0UJAz1Xe6+YmIctid6nEvqNFgQoAx/jYOxigUCqanZ7yx8o0BAwaYzea8vLzXXnstNycHY1JVVfXNNwe4WsaA6fX65cuX33//fI1GIwjCoqeeeuihh3g99r3330MIUao89NBDOTk5TqczGAzOmDljyNAhoih+/vnnCKHt27c7nU5ZlqdPv2vkpZd2OJ0dHR0TJ0267rprEYKKioqqqir+xh2lVKvVvvbaayNHjjSZzKmpqU8//fT48eMDAX+Xu+vvf9+Boq+wnawYn9lJ425vhfJy1XGMBJEBEwghl1zy4+LFOr0OYQwMMCY+n7+4+Aqj0RgOh0WVqMiKJEkTJk58/vnnMUbV1TWjRyNePgwGgyteXaHX6WVZNpvN06ffFYtllRWVgiBoNNo5c+bECm0CIaFwiBBSW1vjdrsrKioURYmLsy1btuzll1/mVTgAJsuKJKmbm5uPHDkyduxYhJDP5x83bkRubq4iK0QgiqyIonj11Vdv2/YxQriqquo0YTp65EwAmU1mo9HQ2hpACPPXTORwmAkCMKZ0OpWWlqIXXixtd/5j7970jEyr1dLY2BDtO1BFGQJ/7xJiwTWWjkaKripVV1eXyWRsaGiYMWPG22+/HXsZkdcoHI5ETAiX5BgDlUrFQeTOlevzNptNkiT+Ggc/BxPS2dFhNBqjQQoiwT5aR0AISZKEuvVrnS5YY4RA/DnboZTqDfp+/fpVV39ssVhK3y399a9/zWUapNFk/+Z2lpf3gaz854MPiiopOydbo9GEw2GEkFaj2bt3L+8zY4xJkoQQ2rFjh0ajkeVwRkYGinRO47AcToiPnzdv/jPPPMMYbN26dcmSJdy/pGek79+/PxgMPf/cC8OGD+P9DicVZlNSUkSVyuP2PProwpkzZyqUkihBjT2PpqYmjLFWqz148GBzc7PD4WCMqVQqhNC2bdsEQZDlcEZ6eqzt4NRGBPRz4Y23ze/YscNiseTm5jocjsIBA155Zdn+/fu//fbbde+/f/WUKXE2W1ZWptFk/OCDDwBg7969CQkJWVlZdnvc7Nmza2pqQqFQQ0PDvPnzEhMTk5OThxYN9Xq93Ek7HIlJSY4dO3YAwMaNG61WS05Oji3OtnnzZgDY9MEHZpMpLS1t7NixP/74I3fAX3/99ZgxY1599VWPxwMAx44dS0tLS0lJ6d+//86dO/k5lZWVkydPXrBgQUtLCwA0NDRwJx0fH3/jjTceOXIkFAp1dHQsXrw4KcmRmZmZnp5WVVX1c8EeGENnoABUUQBgwYIFGo0mOzs7IyPdbDEnJSUlJydbTCZHQkJOTo5Gq5k3dy6f3L59+xISEjIzM1NSU7Rabd++fceNGzdgQP/4hPjMzEydXrd+/XoAkGX5qquuTEpKysnJ4X4EABYuXGg2m7Kzs/Lz8/mM77jjDoNB73A4+vTpc/31119zzTWZmZk2mw0hVFpayr9x6ZKler0uKcmRnpY2ceLEyTdM7ts3n7frP/roowBQV1eXl5eXmpqSlpZmMOizs7NLSkqGFg212+OysrLUavVTTz11Zip0RoAoVRSFUvrHP/4xISHBbDYnJyelpKQkJycnJSVZLJb4+PgFCxbIsqzICgfI4XDEx8ffdNNNU6dOVavVarXaZDLZbDZHkuOll17i0ZRSNmLECLVaslothw4d4pCFQqFJkybpdFpJkkaMGN7S0uL1eu+59x6Hw2EyGiVJ4pdKS0tdunSJHA7zuQHA0qVL09PTLRazWq1WqVQGgyExMXHu3LmdnZ3cgvr27Wu328eNGzdjxgyDQa/WqA0Gg81mjYuLe+ThhxVF4dLUz4FwTpIrxvjAgQPr168/ePBgR4cTELLZbEMGD7n11luHDx/O46goil9++eXNN9/k9/vvuOOOF154cf2GDf/4xzfBQDAzM+Paa68rKCiI8bGPPvqow+kURHHSpEkWi4VRJohCU1PTtm3b9Hp9V1fX2LFjc3NzEULffPPNzp076+vrMcZZWVkTJkzIz89HEHEQXLeqrKzctm1bRUUFYyw5OXns2LHDhw+P+aCSkpLm5uZRoy7fvHnL1q1b9+zZ4/V6ExMTJ0yYwCd/dj34LIOy2EtOlFKXy+VyuXh+wI0z9jD37duXnJxks9lmzpwJp4zuZtz9ePfkpvuglHK+eobrMMa48Z5yTmRKjY2NBQUFdnvcxIkTznqpnqQaEZEBR7QLURB56y9CiHePRbbjYN3SkShtCYfDPJpE3q8kQuwdVEVReHEtJk1wnsV35EAQlUcw4sYfaUo4ZWMUhBARyGnPOW4ZUaWbz5nLAKe91D9VeubXYsCiVW8snKbOA901ZlEQiUC6Cw48le9Oi05ayKd2jJzLbZz+HDghn8RRCfB8mzgv5M4LgUCgtrYWAMwmc3JyMm/0pQrdvWf3jz8eDsuy0WAYMWJEYeGAGI6xnTdi1LG7/HrS77Ezf+74qVNSFKW6upqnGunp6b9U6flcpHgGCKNgMLhixauCIIwadbler29oaPj8811jx44dO3YMX03dBTbMF1W3PU1iq6Z7jSy2hE/60tMqO/98daBHpecz1rZ4vQghTAh56601ADBt2p2xc7q63MFggFMVjHFdXX1bW5vdbk9PT+MOu7Oz02q1cji6utySpNJqtRhjn89fWVlhMBizsjJdLpfJZIpkbZVVXq83JzvbYDREtq84cZIsul8FObFNrZcaqM60p1G3dyyAEOxyuaqqqh544AFu6ty/mM0ms9nE0dy48Z3Kyqq0tFSuq0yZcrPX633zzVX33DPHaDQihDZt2pSdnX3FFaPLy8vfeac0Pj4eGAgi8fn8c+bMliRpzZq1TqfTZDJv3rx5ypSbCwoKGGP4RE1aOJ0LO3drOk+AFCXc3BxptIHjoEF330gEMSEBEdHpdJpMRrPJBAxEUfz0k08PHynX6bThcLhk3Lj8vvmXXjpy8uTr1Wq13+9fsvTZyy+/zGqxMkZPLEkTBrBx4zuTJk0cNmwYQmjL5i1fff2VVqv9+ONtCMHvfvcgQqiiorK0tDQ7O1uSJJBlua39hOwcxzqrMDAmGI2C0XihAQLAhCg+b/u7paBQvv1RrB0KcYwwAkaJVpcw/S4kinq9PhAIyoosiiIwyO+bH2eP02g027Z90tjU2Legb0tL64YN76hUokarpYri9/ttNhvfGyYWsCVJam9rkyRp2LBhjDJM8KjRo388fJhSWltbGwgE1q5dSykVRZXL5XK2O5NTkmWP27lhPVB6knqFETCEWMBvvHy0ZcyYc2wmEM99cQGAYLYk3//AubgpAEhITFSrNV999dXo0aMRQhkZGTyV37r1o9TU1Pb29s2bP7z77sjeOC+//FdKGSYYARciEMZYlmVKmUqlkmUFABGBcBWNi2oY48zMzKKioaFQSK1WT5gwwWIxA4DKFpf029+evdvs3Arc5Hw9NFDKf1j0l1N/EAJgQDCeMuXmjz/etnv3Hr4pR1tb2xtvvKlSqfLy8rxeLyGC3W7XarXVNTXNTc0YIZWoUqhSVlYGABUVlT/++CMh2Gq16nXa9957LxQKdXW5N236kCvZhYUDjh49ysWGUChUVlYW6ZnsNsnT/5xPXOrFLbr4Gqmrq3vvvQ/kcFglqXw+f0ZG+pQpN0uShDHevHnL4cNHtFptXJzN6/WWlIzr06fPt98e/PjjjyVJbbfHIUCFAwcUFRV1dbnXrVvr9XgFUezTJ/fYsZqZM+/W6/Vbt370XVmZTq8PBoPjx5cMHTr0wlexWW+OWIblcrkaGhr9fn/3/Isfb25u7p4ZAUAoGGpqauIHZVkGxlwuFwAE/H4AqKurX7x4CaWUMgoAPp+vubmZZ229cQu/6DaBKLL/IYm+qxChf1GWiKDbQb6vEGdVb6/7m8vVOa6kxOfzbt360bhx40aPHkUpxQhzx4R6bZ83/MvsaQ+x9/1PlH5Pkqi7H452zQNGWA7LO3fuPFZdLYpiUdHQIUOGdOeE0JtbvuL/FZv+n3T/v2Q3iIj+N4zoe+MRevpLtqDhi/9txAXlQRcBujguAnQRoH8DgOAiQGeJfRcBujguAnRu438ACG3fLZIP6yEAAAAASUVORK5CYII=';
+$('logoImg').src = 'data:image/png;base64,' + LOGO_B64;
+(function () {
+  const l = document.createElement('link');
+  l.rel = 'icon'; l.type = 'image/png';
+  l.href = 'data:image/png;base64,' + LOGO_B64;
+  document.head.appendChild(l);
+})();
+
+renderLanding();
+</script>
+</body>
+</html>
