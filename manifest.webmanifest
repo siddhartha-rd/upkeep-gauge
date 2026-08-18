@@ -1,0 +1,13 @@
+{
+  "name": "UpKeep Gauge",
+  "short_name": "UpKeep",
+  "description": "Home, car & health maintenance tracker",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f9f9f7",
+  "theme_color": "#f9f9f7",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
