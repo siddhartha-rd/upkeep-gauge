@@ -64,8 +64,24 @@
     background: var(--page);
     color: var(--ink);
     min-height: 100vh;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+    display: flex; gap: 2px; max-width: 680px; margin: 0 auto;
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--hairline);
+    padding: 6px 10px calc(8px + env(safe-area-inset-bottom));
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: none; border: none; font-family: inherit; font-size: 10.5px; font-weight: 600;
+    color: var(--ink-3); padding: 6px 0 2px; cursor: pointer;
+  }
+  .tab .ti { font-size: 22px; line-height: 1; filter: grayscale(1) opacity(.55); transition: filter .15s; }
+  .tab.sel { color: var(--ink); }
+  .tab.sel .ti { filter: none; }
   .wrap { max-width: 680px; margin: 0 auto; padding: 0 16px; }
 
   header.app {
@@ -133,6 +149,11 @@
     background: var(--surface); font-size: 15px; cursor: pointer; line-height: 1; padding: 0;
   }
   .tagline { font-size: 12.5px; color: var(--ink-3); margin-top: 10px; line-height: 1.5; }
+  .greet { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; margin-top: 14px; }
+  .greet + .tagline { margin-top: 3px; }
+  .score-mot { font-size: 12.5px; font-weight: 600; color: var(--ink); margin-top: 7px; }
+  .prog { height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 9px; }
+  .prog > div { height: 100%; border-radius: 3px; transition: width .4s ease; min-width: 2px; }
   .profile-btn { cursor: pointer; }
   .profile-sub { color: var(--ink-3); font-size: 12px; }
   .footnote { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--grid); text-align: left; }
@@ -337,6 +358,13 @@
     <div class="chips" id="chips"></div>
     <main id="list"></main>
   </div>
+  <div id="repairView" style="display:none">
+    <div class="group-h" style="margin-top:16px"><h2>🔧 Repair &amp; First Aid</h2></div>
+    <div class="tagline" style="margin-top:2px">When something breaks: step-by-step fixes, what you need, and a video for each. First-aid guides are reference only - in an emergency, call for help first.</div>
+    <input class="p-input" id="rSearch" type="search" placeholder="🔍 Search repairs…" style="margin-top:12px">
+    <div class="chips" id="rChips"></div>
+    <div id="rList"></div>
+  </div>
   <footer class="app">
     <div class="frow">
       <button id="icsBtn">📅 Export to Calendar</button>
@@ -351,6 +379,13 @@
     <div class="note footnote" id="footnote"></div>
   </footer>
 </div>
+
+<nav class="tabbar">
+  <button class="tab sel" data-tab="home"><span class="ti">🏠</span><span>Home</span></button>
+  <button class="tab" data-tab="pm"><span class="ti">✅</span><span>PM</span></button>
+  <button class="tab" data-tab="repair"><span class="ti">🔧</span><span>Repair</span></button>
+  <button class="tab" data-tab="profile"><span class="ti">👤</span><span>Profile</span></button>
+</nav>
 
 <div class="overlay" id="overlay">
   <div class="sheet" id="sheet"></div>
@@ -873,6 +908,100 @@ const TASKS = [
   steps:['Will: do you have one? If not, this year\'s task is creating one (online services handle simple estates affordably; a lawyer for anything complex). If yes: does it still reflect your wishes and assets?','Beneficiaries audit: 401(k), IRAs, life insurance, bank TOD/POD designations - these override your will, and outdated ones (an ex, a deceased relative) are the most common estate disaster.','Powers of attorney: financial POA and healthcare directive/proxy - who decides if you can\'t? Documents signed and shared with that person?','Digital estate: password manager emergency access set up? Someone can reach critical accounts if needed?','Document locations: does someone you trust know where the will, deed, titles, and policies are?','Titles & deed check: home deed, car titles - filed safely, reflecting current reality?','Update anything stale; re-store everything in the safe place; done for the year.'],
   tip:'The barrier here is emotional, not practical - book it like a dentist appointment and it\'s done in an afternoon. Future-someone will be very grateful.' },
 
+/* ------------------- SINGLE FAMILY HOME (exterior is yours) ------------------- */
+{ id:'sf-gutters', months:6, area:'general', homeTypes:['single'], time:'2 hr', video:'how to clean gutters and downspouts safely',
+  title:'Clean gutters & downspouts',
+  why:'Clogged gutters overflow against the siding and foundation - the root cause of a huge share of basement leaks, rot, and ice dams. Twice a year (after spring seeds and after leaf fall) keeps water going where it should.',
+  supplies:['Sturdy ladder (and a helper to foot it)','Work gloves','Gutter scoop or trowel','Bucket with hook','Garden hose'],
+  steps:['Work from a firm, level ladder position - never lean past your hips; move the ladder often.','Scoop debris into the bucket, working away from downspouts.','Flush the gutter toward the downspout with the hose; watch that water flows freely out the bottom.','Downspout clogged? Feed the hose up from the bottom at full pressure, or use a plumber\'s snake.','Check that downspout extensions carry water at least 4-6 ft away from the foundation.','While up there: look for sagging sections, loose spikes/brackets, and rust spots; note roof shingle condition.','Do this each spring and late fall (after the leaves are down).'],
+  tip:'Water stains on the fascia or mulch trenches under the gutter line = overflowing gutters. Gutter guards cut cleaning to once a year but do not eliminate it.' },
+
+{ id:'sf-roof', months:12, area:'general', homeTypes:['single'], time:'30 min', video:'how to inspect roof from ground binoculars homeowner',
+  title:'Roof & flashing inspection (from the ground)',
+  why:'A missing shingle is a $5 fix that becomes a $5,000 ceiling repair if it goes unseen for a year. An annual walk-around with binoculars catches roof problems while they are small - no ladder needed.',
+  supplies:['Binoculars or phone camera zoom','Flashlight (for the attic half)'],
+  steps:['Walk the full perimeter and scan: missing, cracked, curling, or lifted shingles; shiny exposed nail heads; granule bald spots.','Check flashing (the metal) around the chimney, vents, and where roof meets walls - lifted or rusted flashing is the #1 leak source.','Look at the gutters for heavy granule accumulation - a sign shingles are aging out.','Scan for moss/algae streaks (trapped moisture) and any sagging roofline.','Inside: on a bright day, check the attic for pinholes of daylight and any water stains; after a heavy rain, take a flashlight look too.','After any major hail or wind storm, repeat this check - and file insurance claims promptly if you find damage.','Roof over 15-20 years old? Get a professional inspection every few years.'],
+  tip:'Photograph the roof from the same 4 spots every year - comparing photos makes slow deterioration obvious.' },
+
+{ id:'sf-exterior', months:12, area:'general', homeTypes:['single'], time:'1 hr', video:'annual home exterior inspection siding foundation caulk',
+  title:'Exterior walk-around: siding, caulk, foundation, grading',
+  why:'Your siding and foundation are the building envelope - small gaps let water in, and water is how houses die. One slow annual lap with a notepad prevents the big-ticket repairs.',
+  supplies:['Notepad or phone','Exterior caulk + caulk gun (for gaps you find)','Flashlight'],
+  steps:['Walk the house slowly. Siding: cracks, warping, loose boards, peeling paint (bare wood rots fast - spot-prime and paint it).','Check caulk around every window, door, and where pipes/wires enter the house; recaulk anything cracked or missing.','Foundation: hairline cracks are normal; mark and date any crack wider than 1/4", horizontal cracks, or ones that grow - those need a pro.','Grading: soil should slope AWAY from the house (6" drop over 10 ft). Low spots against the foundation collect water - add soil.','Check window weep holes are clear, dryer/exhaust vent flaps close properly, and no vegetation touches siding.','Look under decks/porches for rot and check railing sturdiness.','Fix the small stuff same-week; schedule the big stuff before winter.'],
+  tip:'Do this in spring with the sf-roof check - one Saturday morning covers the whole shell of the house.' },
+
+{ id:'sf-hosebibs', months:12, area:'plumbing', homeTypes:['single'], time:'30 min', video:'how to winterize outdoor faucets hose bibs',
+  title:'Winterize hose bibs & exterior plumbing (fall)',
+  why:'A frozen hose bib splits the pipe INSIDE your wall, and you find out in spring when the wall is soaked. Ten minutes each fall prevents it entirely.',
+  supplies:['Foam faucet covers (a few dollars each)','Optional: air compressor if you have irrigation'],
+  steps:['Before first freeze: disconnect and drain all garden hoses (a connected hose is what causes most freeze bursts).','If your hose bibs have interior shutoff valves, close them, then open the outside faucet to drain the stub-out. Leave it open for winter.','Frost-free bibs: still disconnect hoses, but no interior shutoff needed - they drain themselves IF the hose is off.','Snap foam covers over each outdoor faucet.','Irrigation system: shut its supply, drain, and have the lines blown out with compressed air before hard freeze.','In spring: remove covers, close bleed caps, reopen valves, and check each bib for leaks at first use.'],
+  tip:'Anchored to fall on purpose - the app will schedule this for October/November regardless of when you mark it done.' },
+
+{ id:'sf-trees', months:12, area:'general', homeTypes:['single'], time:'1-2 hr', video:'how to trim trees and shrubs away from house',
+  title:'Trim trees & shrubs away from the house',
+  why:'Branches touching the roof grind off shingles and hand rodents a highway into your attic; shrubs against siding trap moisture and hide pests. A yearly trim protects the house and the landscaping.',
+  supplies:['Loppers & pruning shears','Pole pruner or pruning saw for higher branches','Work gloves & safety glasses'],
+  steps:['Trim any branch within 6 ft of the roof, and anything touching siding or gutters.','Keep shrubs at least 12" off the siding so air can circulate and you can inspect behind them.','Remove dead or hanging branches anywhere near the house, driveway, or play areas - they come down in the next storm regardless.','Check for branches near power service lines - do NOT cut those yourself; the utility often trims them free.','Clear vegetation from around the AC condenser (2 ft clearance).','Anything requiring a chainsaw above shoulder height is a professional job - tree work injuries are brutally common.'],
+  tip:'Late winter is the best pruning time for most trees (dormant, structure visible), but safety trims matter whenever you spot them.' },
+
+{ id:'sf-driveway', months:12, area:'general', homeTypes:['single'], time:'1 hr inspect + a Saturday if sealing', video:'how to fill driveway cracks and seal asphalt concrete',
+  title:'Driveway & walkway crack fill / seal check',
+  why:'Water enters small cracks, freezes, and turns them into big cracks - the freeze-thaw cycle is relentless. Filling cracks yearly and sealing every 2-3 years doubles a driveway\'s life.',
+  supplies:['Crack filler (asphalt: rubberized filler; concrete: polyurethane caulk or patch)','Wire brush','Driveway sealer every 2-3 years (asphalt)','Push broom'],
+  steps:['Walk the driveway and walkways: mark every crack wider than a pencil line.','Clean cracks out with the wire brush and blow/sweep debris.','Fill cracks per product directions; overfill slightly - it settles.','Check for settled or heaved slabs creating trip hazards; mudjacking/grinding fixes those cheaper than replacement.','Asphalt: if the surface looks gray and dry rather than black, plan a seal coat this year (fill cracks first, seal on a warm dry weekend).','Check walkway joints and front steps too - and the gap where driveway meets garage or foundation (seal it; water there undermines the slab).'],
+  tip:'Fall is ideal: fill cracks before the first freeze gets in and does winter damage.' },
+
+/* --------------------------- ELECTRIC CAR --------------------------- */
+{ id:'ev-charger', months:6, area:'auto', domain:'auto', carTypes:['electric'], time:'15 min', video:'how to inspect EV charging cable connector outlet safety',
+  title:'Inspect EV charging equipment',
+  why:'Your charger moves serious power every night. A worn cable, loose plug, or heat-damaged outlet is both a fire risk and a slow-charging culprit - and a 15-minute inspection catches all of it.',
+  supplies:['Flashlight','Dry cloth'],
+  steps:['Unplug and inspect the full cable length: cuts, kinks, crushed spots, or cracked insulation = replace, do not tape.','Look at the connector pins: clean, straight, no scorch marks or melting. Wipe grime with a dry cloth.','Check the wall outlet or hardwired unit for discoloration or heat marks - browning around a 240V outlet means a loose connection; have an electrician tighten it NOW.','Feel the plug after a charging session: warm is normal, too-hot-to-hold is not.','Confirm the cable routes without being driven over, pinched by the garage door, or a trip hazard.','Check the charger\'s app/indicator for error history and update its firmware if it has one.'],
+  tip:'Coil the cable loosely on its hook, not in tight loops - and if you use a plug-in Level 2 charger, that outlet should be commercial-grade (a standard one wears out and overheats).' },
+
+{ id:'ev-battery', months:12, area:'auto', domain:'auto', carTypes:['electric'], time:'30 min + service if due', video:'EV annual maintenance battery health 12v coolant',
+  title:'EV annual: battery health, coolant, 12V, software',
+  why:'EVs skip oil changes but are not maintenance-free: the traction battery has a coolant loop, the 12V battery still dies like any car battery, and range trends tell you the pack\'s health story.',
+  supplies:['Your EV\'s app (for battery/range data)','Owner\'s manual (service intervals)'],
+  steps:['Check battery health: compare current full-charge range to last year\'s (note it in the app when you mark done). Losing 2-3% a year is normal; a sudden drop is a warranty conversation.','Check the manual for battery coolant service interval (often 4-5 years) and brake fluid (2-3 years) - book service if due.','12V battery: still lead-acid in most EVs and still dies at 3-5 years - have it tested; a dead 12V strands an EV just like a gas car.','Install pending software updates - they routinely improve range, charging speed, and fix real bugs.','Rotate tires religiously (EV torque + weight eats tires ~20% faster) - track it with the tire rotation check.','Daily habits check: charging to 80% for daily use and avoiding regular DC fast charging extends pack life meaningfully.','Cabin air filter and wipers: same as any car - covered by their own checks.'],
+  tip:'Brakes last ages on EVs thanks to regen - but because they are used so little, have the calipers exercised/lubed at service so they do not seize from disuse.' },
+
+/* ------------------ HEALTH: GENDER & AGE SPECIFIC ------------------ */
+{ id:'hw-wellwoman', months:12, area:'health', domain:'health', cond:{gender:'female', minAge:18}, time:'1 hr appointment',
+  title:'Well-woman exam',
+  why:'The annual well-woman visit covers screenings that the general physical does not: cervical cancer screening (Pap/HPV), breast exam, and reproductive health. Covered 100% as preventive care by most insurance.',
+  supplies:['Insurance card','Date of your last Pap/HPV test (the office can look it up)','Questions you have been putting off'],
+  steps:['Book with your OB/GYN or primary care doctor (many do well-woman visits).','Pap/HPV testing: typically every 3 years (ages 21-29) or every 5 years with HPV co-testing (30-65) - confirm where you are in the cycle.','Get the clinical breast exam, and ask when to begin mammograms based on your family history (40 is the standard start).','Discuss anything relevant: contraception, cycle changes, perimenopause symptoms, bone health.','Update vaccines if needed (HPV vaccine is approved through age 45 - worth asking).','Book next year before leaving.'],
+  tip:'Between visits: know your normal. Changes you notice yourself are how most breast issues are found - report anything new without waiting for the annual.' },
+
+{ id:'hw-mammogram', months:12, area:'health', domain:'health', cond:{gender:'female', minAge:40}, time:'30 min appointment',
+  title:'Mammogram',
+  why:'Annual screening mammograms from 40 onward catch breast cancer years before it can be felt - when treatment is most effective and least invasive. Screening mammograms are covered 100% by insurance.',
+  supplies:['Insurance card','Location of prior mammogram images (the facility transfers them for comparison)'],
+  steps:['Book at an accredited imaging center - no referral needed at most for screening.','Schedule for the week after your period if pre-menopausal (less tenderness).','Skip deodorant/lotion on the day (they show up on imaging).','Have prior images sent if you switched facilities - comparison is half the diagnostic value.','Dense breast tissue on your report? Ask whether supplemental ultrasound screening makes sense for you.','A callback for more images is common and usually benign - do not panic, but do go.'],
+  tip:'Anchor it to your birthday month - easy to remember, and the app will keep the annual cadence from there.' },
+
+{ id:'hw-bone', months:12, area:'health', domain:'health', cond:{gender:'female', minAge:65}, time:'20 min appointment',
+  title:'Bone density screening (DEXA)',
+  why:'Osteoporosis is silent until a fracture - and hip fractures change lives. A DEXA scan is quick, painless, and tells you years in advance whether bones need support.',
+  supplies:['Insurance card','List of calcium/vitamin D supplements you take'],
+  steps:['Ask your doctor for a DEXA scan referral (recommended at 65, earlier with risk factors like family history or long steroid use).','The scan itself is a 10-minute lie-still X-ray - nothing invasive.','Review your T-score with your doctor and the plan it implies: diet, vitamin D, weight-bearing exercise, or medication.','Ask how often to rescan (typically every 2 years; mark this done each year you confirm you are on schedule).','Double down on the fitness checks - strength training is the single best bone-density medicine there is.'],
+  tip:'Balance work (tai chi, single-leg practice) prevents the falls that break bones - it matters as much as the density itself.' },
+
+{ id:'hm-prostate', months:12, area:'health', domain:'health', cond:{gender:'male', minAge:50}, time:'Part of your physical',
+  title:'Prostate screening discussion',
+  why:'Prostate cancer is the most common cancer in men, and screening from 50 (45 with family history or for Black men, who are at higher risk) catches it early. The PSA blood test is simple - the decision to screen is a conversation with your doctor.',
+  supplies:['Family history notes (father/brother with prostate cancer changes the math)'],
+  steps:['At your annual physical, raise it: "Should we do a PSA test this year?" - it is a shared decision based on your age and risk.','If testing: it is one extra vial in your regular blood draw - nothing separate needed.','Know your number and track it over years - the trend matters more than a single value.','Report urinary changes (frequency, urgency, weak stream, night waking) whenever they appear - do not sit on them until the annual.','Mark this done each year the conversation/test happens with the physical.'],
+  tip:'Book it with the annual physical so it is zero extra effort - this check exists so the conversation does not get skipped.' },
+
+{ id:'h-colorectal', months:12, area:'health', domain:'health', cond:{minAge:45}, time:'Varies by method',
+  title:'Colorectal screening - confirm you are on schedule',
+  why:'Colorectal cancer is the second-deadliest cancer yet among the most preventable - screening finds precancerous polyps and removes them before they become anything. Screening starts at 45 for everyone now.',
+  supplies:['Insurance card','Date of your last screening (colonoscopy or stool test)'],
+  steps:['Check where you stand: colonoscopy is every 10 years (if clear), stool-based tests (FIT/Cologuard) every 1-3 years.','Not screened yet and 45+? Talk to your doctor about which method fits you - the best test is the one you will actually do.','Stool tests are done at home and mailed - genuinely easy; a positive result then warrants a colonoscopy.','Colonoscopy prep is the worst part and it is one unpleasant evening - the procedure itself you sleep through.','Family history of colorectal cancer? Screening may start earlier and repeat more often - tell your doctor.','Mark this done each year you confirm you are on schedule (or complete a screening).'],
+  tip:'This annual check is deliberately a nag: "on schedule" drifts quietly. Two minutes to verify beats the alternative by a lot.' },
+
 { id:'la-device', months:3, area:'admin', domain:'admin', time:'30 min',
   title:'Device PM: backups, updates, storage, battery',
   why:'Phones and laptops fail like any machine, and the only disaster version is the one without a backup. A quarterly device pass means a lost or dead device is an inconvenience, not a catastrophe.',
@@ -976,8 +1105,187 @@ function nextAnchorDate(from, months) {
 function allTasks() { return TASKS.concat(data.custom || []); }
 function areaInfo(t) { return AREAS[t.area] || { name: t.catName || 'Custom', emoji: '⭐' }; }
 function isHidden(t) { return (data.hidden || []).includes(t.id); }
-function visibleTasks() { return allTasks().filter(t => !isHidden(t)); }
+
+/* Which built-in checks apply to which home type (default: all types) */
+const HOME_TYPES = {
+  'garage-safety':['townhome','single'], 'garage-lube':['townhome','single'], 'garage-balance':['townhome','single'],
+  'attic-check':['townhome','single'], 'condenser-coils':['townhome','single'],
+  'fire-sprinkler':['townhome','condo'],
+};
+/* Gas-only car checks (EV checks carry carTypes:['electric'] inline) */
+const CAR_TYPES = { 'car-oil':['gas'], 'car-engine-filter':['gas'] };
+
+function taskApplies(t) {
+  const p = data.profile || {};
+  if ((p.disabledDomains || []).includes(domainOf(t))) return false;
+  const ht = p.homeType || 'townhome';
+  const htList = t.homeTypes || HOME_TYPES[t.id];
+  if (htList && !htList.includes(ht)) return false;
+  const ct = p.carType || 'gas';
+  const ctList = t.carTypes || CAR_TYPES[t.id];
+  if (ctList && ct !== 'both' && !ctList.includes(ct)) return false;
+  if (t.cond) {
+    if (t.cond.gender && p.gender !== t.cond.gender) return false;
+    if (t.cond.minAge && !(Number(p.age) >= t.cond.minAge)) return false;
+  }
+  return true;
+}
+function visibleTasks() { return allTasks().filter(t => taskApplies(t) && !isHidden(t)); }
 function effMonths(t) { const o = data.overrides && data.overrides[t.id]; return o && o.months != null ? o.months : t.months; }
+
+/* ============================== REPAIR LIBRARY ============================== */
+/* Reference guides - fix it or stabilize it until help arrives. First aid entries
+   are general first-aid information, NOT medical advice. */
+const REPAIRS = [
+/* ------------ HOME REPAIRS ------------ */
+{ id:'r-toilet-clog', cat:'home', emoji:'🚽', title:'Unclog a toilet', time:'10 min', video:'how to unclog a toilet with a plunger',
+  supplies:['Flange plunger (the kind with the fold-out cup)','Rubber gloves','Old towels for the floor'],
+  steps:['Do NOT flush again if the bowl is full - it will overflow. Wait or remove some water.','Lay towels around the base. Fold the plunger flange out and seat it fully over the drain hole.','Push down slowly first to expel air, then plunge vigorously 15-20 times keeping the seal - the pull matters as much as the push.','Break the seal and check: water rushing down = cleared. Flush with the tank lid off so you can lift the flapper closed fast if it starts rising.','Still clogged: a toilet auger ($15) reaches what plungers cannot. Feed, crank, retrieve.','Repeated clogs in the same toilet = something stuck in the trap or a downstream issue - auger first, then plumber.'] },
+{ id:'r-drain-clog', cat:'home', emoji:'🚰', title:'Unclog a sink or shower drain', time:'20 min', video:'how to unclog sink drain hair clog zip tool',
+  supplies:['Zip-it barbed drain tool ($3)','Rubber gloves','Bucket','Channel-lock pliers (for the P-trap)'],
+  steps:['Hair clog (bath sinks/showers): remove the stopper, feed the zip tool down, pull out the hair mass. That is the fix 80% of the time.','Kitchen sink: put the bucket under the P-trap (the U pipe), unscrew both slip nuts by hand or with pliers, dump the gunk, scrub, reassemble hand-tight.','Then flush with hot water; baking soda + vinegar + hot water finishes the job.','Blockage past the trap: a 25-ft drum auger through the wall stub reaches it.','Avoid chemical drain openers - they damage pipes, disposals, and make later plumber work hazardous.','Slow drains everywhere at once = main line issue - that is a plumber call, not DIY.'] },
+{ id:'r-disposal-jam', cat:'home', emoji:'🔩', title:'Fix a jammed garbage disposal', time:'10 min', video:'how to fix jammed garbage disposal allen wrench reset',
+  supplies:['1/4" Allen (hex) key - one usually came taped to the unit','Flashlight','Tongs (never fingers)'],
+  steps:['Switch OFF and unplug the disposal under the sink (or flip its breaker).','Look in with the flashlight; remove any visible object with tongs - never your hand.','Insert the Allen key into the hex socket at the bottom-center of the unit under the sink. Work it back and forth full rotations until it spins freely - this manually frees the impeller.','Press the red RESET button on the bottom of the unit (it pops out when overloaded).','Plug in, run cold water, flip on. Humming = still jammed (repeat step 3). Silence = press reset again.','Prevention: cold water running before-during-after, and no fibrous peels, grease, eggshells, or pasta.'] },
+{ id:'r-running-toilet', cat:'home', emoji:'💧', title:'Fix a running toilet', time:'20 min', video:'how to fix running toilet replace flapper fill valve',
+  supplies:['Replacement flapper (match brand/size - photo the old one)','Or complete fill valve kit ($12)','Sponge & bucket'],
+  steps:['Lift the tank lid. Jiggle test: lift the flapper chain - if running stops, the flapper is not sealing.','Turn off the supply valve behind the toilet, flush to empty the tank, sponge out the rest.','Unhook the old flapper from the pegs and chain; hook on the new one, leaving just a little chain slack.','If water was ALSO trickling into the overflow tube: the fill valve is set too high or failing - adjust the float down, or swap the whole fill valve (two connections, 15 minutes, instructions in the box).','Turn supply back on, let it fill, and confirm water stops below the overflow tube and the bowl stays quiet.','Dye test after: food coloring in the tank, 20 min, no color in bowl = sealed.'] },
+{ id:'r-faucet-drip', cat:'home', emoji:'🚿', title:'Stop a dripping faucet', time:'45 min', video:'how to fix dripping faucet replace cartridge',
+  supplies:['Replacement cartridge for your faucet model (photo it, take the old one to the store)','Allen keys & screwdriver','Adjustable wrench','Rag'],
+  steps:['Turn off both shutoff valves under the sink. Open the faucet to relieve pressure. Plug the drain (parts WILL try to escape).','Pry the decorative cap off the handle, remove the handle screw, pull the handle.','Remove the retaining nut or clip and pull the cartridge straight up (photograph its orientation first).','Take it to the hardware store for an exact match (or order by faucet model).','Install the new cartridge in the same orientation, reassemble, turn water back on slowly.','Still dripping: for two-handle faucets it may be the other side; for compression faucets it is the rubber washer at the stem base.'] },
+{ id:'r-burst-pipe', cat:'home', emoji:'🌊', title:'Burst or leaking pipe - emergency response', time:'Act now', video:'what to do burst pipe emergency shut off water',
+  supplies:['Know your main shutoff location NOW (before you need it)','Bucket & towels','Self-fusing silicone tape or pipe repair clamp (for temporary patching)'],
+  steps:['Shut the water off: fixture valve if the leak is at one fixture, MAIN shutoff for anything in a wall/ceiling. Every second of flow is damage.','Open the lowest faucet in the house to drain pressure from the lines.','Kill electricity to any affected rooms at the breaker if water is near outlets or fixtures.','Contain: buckets, towels; poke a small hole in a bulging ceiling over a bucket to drain it before it collapses (really).','Temporary patch on an accessible pipe: dry it, wrap self-fusing silicone tape tight with 50% overlap, or clamp a repair sleeve over the hole.','Call the plumber; run fans/dehumidifier on wet areas immediately - mold starts in 24-48 hours. Photograph everything for insurance.'] },
+{ id:'r-breaker', cat:'home', emoji:'⚡', title:'Tripped breaker & dead outlets', time:'10 min', video:'how to reset tripped circuit breaker and gfci outlet',
+  supplies:['Flashlight','Phone charger or lamp (as a tester)'],
+  steps:['Some outlets dead but no breaker looks tripped? First press RESET on every GFCI outlet (kitchen, baths, garage, laundry) - one GFCI often protects a whole chain of outlets.','At the panel: a tripped breaker sits between ON and OFF, or shows orange. Flip it fully OFF first, then firmly ON.','If it trips again immediately: unplug everything on that circuit, reset, and plug items back one at a time - the item that trips it is your culprit.','Trips with nothing plugged in, or a breaker that is hot, buzzing, or smells burnt = STOP. Leave it off and call an electrician.','Frequent trips on kitchen/bath circuits usually mean too many high-draw appliances on one circuit - spread them out.','Label your panel while you are there (flip one off, see what died, write it down) - future you says thanks.'] },
+{ id:'r-wh-nohot', cat:'home', emoji:'🔥', title:'No hot water - quick diagnosis', time:'15 min', video:'water heater no hot water troubleshooting pilot reset',
+  supplies:['Flashlight','Your water heater\'s manual (or model number for a search)'],
+  steps:['Electric heater: check its breaker (a double 30A usually) - flip fully off then on. Then press the red high-temp reset button behind the small upper access panel.','Gas heater: is the pilot lit? Look through the sight glass. Relight per the label on the tank (usually: knob to Pilot, hold, ignite, keep holding 30-60s).','Pilot will not stay lit = thermocouple failure - a cheap part, plumber or confident-DIY fix.','Lukewarm water only: one of two heating elements (electric) or the dip tube may have failed; sediment buildup also steals capacity (see the flush PM).','Water at the base or rust streaks = the tank itself may be failing - shut off water+power/gas and call; do not wait, tanks fail wet.','Rotten-egg gas smell near the unit: leave, do not flip switches, call the gas company from outside.'] },
+{ id:'r-ac-nocool', cat:'home', emoji:'🌀', title:'AC not cooling - checklist before you call', time:'20 min', video:'AC not cooling troubleshooting filter breaker frozen coil',
+  supplies:['Clean filter (right size)','Flashlight','Garden hose (if outdoor coil is filthy)'],
+  steps:['Thermostat sanity check: set to COOL, temp 3-5° below room, fan AUTO. Replace thermostat batteries if the screen is dim.','Check the filter - a suffocated filter is the #1 cause. Swap it if gray.','Check both breakers: the indoor air handler AND the outdoor unit breaker/disconnect.','Is the outdoor fan spinning? Humming-but-not-spinning = likely capacitor (cheap part, common failure, pro fix). Iced-over pipes = turn system OFF, fan ON for a few hours to thaw before any restart.','Check the condensate line/drain pan - a full pan trips a float switch that shuts the AC down (see the vinegar-flush PM).','Rinse the outdoor coil if matted with fluff/dirt. If still not cooling after all this, it is refrigerant or electrical - pro territory. Tell them what you checked; it saves diagnostic time.'] },
+{ id:'r-fridge-warm', cat:'home', emoji:'🧊', title:'Fridge not cooling - quick fixes', time:'20 min', video:'refrigerator not cooling troubleshooting coils fan',
+  supplies:['Coil brush & vacuum','Thermometer (fridge should be 35-38°F, freezer 0°F)'],
+  steps:['Check the obvious: settings not bumped, door closing fully (test the gasket with a dollar bill), nothing blocking the interior vents between freezer and fridge.','Vacuum the condenser coils (bottom front or rear) - caked coils are the top cause of weak cooling.','Confirm 1-2" clearance behind/above so heat can escape.','Listen: is the compressor running (low hum)? Is the fan near it spinning? Total silence or rapid clicking = compressor/relay issue - repair call.','Freezer cold but fridge warm = usually the evaporator fan or a frosted-over airflow channel; empty the freezer and look for heavy frost (defrost system fault).','Move food to coolers if it is not fixed within a few hours - and photograph the temp for any warranty/insurance claim.'] },
+{ id:'r-drywall', cat:'home', emoji:'🧱', title:'Patch a drywall hole', time:'1 hr + dry time', video:'how to patch drywall hole mesh patch spackle',
+  supplies:['Small holes: spackle & putty knife','Medium (to 6"): self-adhesive mesh patch kit','Sanding sponge (fine)','Matching paint + primer'],
+  steps:['Nail holes: press in spackle with a putty knife, scrape flush, dry, quick sand, touch up paint. Done in minutes.','Doorknob-size: stick the mesh patch over the hole, skim joint compound over it feathering 2-3" past the edges.','Let dry fully, sand smooth, apply a second thinner coat feathering wider, dry, sand again.','Prime the patch (paint alone flashes shiny over compound), then paint the area - corner to corner if the wall color has aged.','Big holes (stud-to-stud): screw furring strips inside the hole, screw in a drywall offcut, tape and mud the seams - same skim/sand/prime dance.','Texture-matching spray cans exist for textured walls - practice on cardboard first.'] },
+{ id:'r-ceiling-leak', cat:'home', emoji:'☔', title:'Ceiling leak / roof leak - emergency response', time:'Act now', video:'what to do ceiling leaking water emergency',
+  supplies:['Buckets & towels','Screwdriver (to poke a drain hole)','Plastic sheeting/tarp','Phone camera for documentation'],
+  steps:['Move belongings, lay plastic and towels, set buckets under drips.','Bulging/sagging ceiling: poke a small hole at the LOW point over a bucket and let it drain - controlled draining prevents a whole-ceiling collapse.','Find the source if you can: attic access with a flashlight (water travels along framing - the entry point is often uphill from the drip). AC condensate pans and supply lines cause as many "roof leaks" as roofs do.','If it IS the roof: in a townhome, notify the HOA in writing immediately - exterior/roof is typically theirs. Photograph everything, timestamped.','Water off if the source could be plumbing (main shutoff) - see the burst-pipe guide.','Dry it fast: fans + dehumidifier for days, not hours. If drywall/insulation is soaked, it usually needs replacement - insurance claim territory, and your photos are the case.'] },
+{ id:'r-gas-smell', cat:'home', emoji:'⚠️', title:'Gas smell - what to do', time:'Act immediately', video:'what to do if you smell gas in your house',
+  warn:'If the smell is strong or you hear hissing: leave NOW and call 911 and your gas utility from outside.',
+  supplies:['Nothing - this is a leave-first situation'],
+  steps:['Do NOT flip any switches, light anything, use the garage door opener, or unplug anything - a spark is the danger.','Get everyone (pets too) out immediately, leaving the door open behind you.','From outside/a neighbor\'s: call 911 and your gas utility\'s emergency line. They respond fast and free.','Do not re-enter until the utility clears it.','Faint whiff near the stove that dissipates: a burner knob may have been bumped - check knobs are fully off and ventilate. Any recurring or unexplained smell still gets the utility call.','Prevention: know where your gas meter shutoff is, and consider plug-in methane/gas alarms near gas appliances.'] },
+
+/* ------------ CAR REPAIRS ------------ */
+{ id:'r-jump', cat:'auto', emoji:'🔋', title:'Jump start a dead battery', time:'15 min', video:'how to jump start a car properly cable order',
+  supplies:['Jumper cables (or a lithium jump pack - better)','A donor car if using cables'],
+  steps:['Cars OFF, in park, parking brakes on. Cars close but not touching (or jump pack in hand).','Cable order matters: RED to dead battery +, RED to donor +, BLACK to donor -, BLACK to bare metal on the dead car\'s engine block (NOT the dead battery\'s negative post - avoids sparking near the battery).','Start the donor car, let it run 2-3 minutes, then start the dead car.','Remove cables in exact reverse order, not letting clamps touch anything.','Drive the jumped car 20+ minutes to recharge; get the battery load-tested that week - a battery that needed a jump will need another.','Jump pack version: pack clamps to + then engine ground, power on, start, remove. Every garage should have one.'] },
+{ id:'r-flat', cat:'auto', emoji:'🛞', title:'Change a flat tire', time:'30 min', video:'how to change a flat tire step by step spare',
+  supplies:['Spare tire (check its pressure - the PM covers this)','Jack & lug wrench (in the trunk kit)','Wheel wedge/chock, flashlight, gloves (in your emergency kit)','Hazard triangle or flashers'],
+  steps:['Get fully off the road, flat ground, hazards on, parking brake on, wedge a wheel. On a highway shoulder with traffic close - call roadside assistance instead; it is not worth it.','Pry off the hubcap if any; LOOSEN each lug nut a half-turn while the tire is still on the ground (they fight you in the air).','Jack at the frame\'s jack point (notched pinch weld or marked spot - the manual shows it). Raise until the flat clears the ground.','Remove lugs, pull the flat, mount the spare, hand-thread lugs snug in a star pattern.','Lower the car, then torque the lugs firmly in the star pattern.','Donut spares: max ~50 mph and short distances - drive straight to the tire shop. A nail-punctured tire is usually a cheap patch if you do not drive on it flat.'] },
+{ id:'r-fob', cat:'auto', emoji:'🔑', title:'Dead key fob - battery swap & backup entry', time:'10 min', video:'how to replace key fob battery open car dead fob',
+  supplies:['Coin cell battery (CR2032 is most common - check yours)','Small flat screwdriver or a coin'],
+  steps:['A hidden mechanical key lives inside most fobs: slide the release catch and pull it out - that opens the driver\'s door the old way.','Car will not start with a dead fob? Most cars: hold the fob against the marked spot (start button, steering column) and press start - the chip works without battery.','Swap the battery: find the seam, twist a coin to pop the halves, note the battery orientation, swap, snap shut.','Test lock/unlock. If it still fails, the fob may need re-pairing - some cars have a DIY procedure in the manual; otherwise the dealer.','Buy the coin cells in 2-packs and change the second fob too - they age together.','Note your fob\'s battery type in this app\'s custom notes or your phone for next time.'] },
+{ id:'r-overheat', cat:'auto', emoji:'🌡️', title:'Engine overheating - what to do', time:'Act now', video:'what to do when car overheats while driving',
+  warn:'NEVER open a hot radiator cap - the system is pressurized and will scald you.',
+  supplies:['Coolant (50/50 premix) in the trunk is cheap insurance','Rag, gloves'],
+  steps:['Temp gauge climbing: heater on FULL hot, fan on max (it dumps engine heat), AC off. Buys you time.','Gauge pegged or steam: pull over safely, engine OFF, hood released (pop it for airflow but mind the steam).','Wait 30+ minutes. Do not touch the radiator cap until the system is fully cool.','Check the overflow reservoir level (safe to check) - if empty, top with coolant (or water in a pinch) once cool.','Look underneath: puddling coolant (green/orange/pink) = leak; a collapsed hose or white exhaust smoke = do not drive it, tow it.','If it holds temp on a gentle restart, drive straight to a shop. Overheating kills engines - one episode warrants a pressure test.'] },
+{ id:'r-nostart', cat:'auto', emoji:'🚗', title:'Car won\'t start - 5-minute diagnosis', time:'10 min', video:'car wont start how to diagnose battery starter fuel',
+  supplies:['Jump pack or cables','Phone flashlight'],
+  steps:['Turn the key/press start and LISTEN - the sound tells you the story.','Rapid clicking or everything dead/dim: battery. Jump it (see the jump-start guide). Lights bright but single loud CLICK: likely starter.','Cranks strong but never fires: fuel or spark. Any fuel? (Gauges lie when batteries are weak.) Try the "prime trick": key to ON for 3 seconds, off, repeat twice, then start.','Security light flashing while cranking = immobilizer issue - try the spare key.','Automatic will not crank at all with good battery: try starting in NEUTRAL instead of park, and press the brake firmly (a worn brake switch blocks push-button starts).','Note exactly what it does (sounds, lights) - that description is gold to the mechanic and can save a diagnostic hour.'] },
+{ id:'r-cel', cat:'auto', emoji:'📟', title:'Check engine light - read it yourself', time:'15 min', video:'how to read check engine light obd2 scanner',
+  supplies:['OBD2 Bluetooth scanner ($20, lives in the glovebox) + a free app','Or the free scan at most auto parts stores'],
+  steps:['FLASHING check engine light = active misfire, can destroy the catalytic converter - drive gently, straight to a shop.','Steady light: no panic. Plug the OBD2 scanner into the port under the driver\'s knee area, pair with the app, read the code(s).','Google the exact code + your car model - you will usually find the common cause in minutes.','Classic easy one: P0455/P0457 after a fill-up = loose gas cap. Tighten till it clicks; the light clears itself in a few drives.','Do not just clear codes without noting them - the pattern and freeze-frame data help the shop.','Codes with drivability symptoms (rough idle, stalling, smells) get a shop visit; a lone stale code with no symptoms can be cleared and watched.'] },
+{ id:'r-bulb', cat:'auto', emoji:'💡', title:'Replace a headlight or taillight bulb', time:'20 min', video:'how to replace headlight bulb taillight',
+  supplies:['Exact bulb (auto parts store lookup by car model - buy pairs)','Gloves (skin oil shortens halogen bulb life)'],
+  steps:['Find the dead bulb (walkaround PM catches these). Buy the matching bulb - and its pair; the other is the same age.','Headlights: access is behind the light through the hood. Twist the connector/retaining ring counterclockwise, pull the old bulb, seat the new one WITHOUT touching the glass (or wipe with alcohol if you do).','Some cars need the airbox or an access panel moved - a 2-minute YouTube search for your exact model shows the trick.','Taillights: usually screws inside the trunk lip open the housing; twist out the socket, push-and-twist the bulb out.','Test before closing everything up.','Whole area dead (not just one bulb) or the new bulb is instantly dead: check the fuse for that circuit (diagram inside the fuse box lid).'] },
+{ id:'r-chip', cat:'auto', emoji:'🪟', title:'Windshield chip - stop the crack', time:'30 min', video:'windshield chip repair kit diy resin',
+  supplies:['Windshield repair kit ($10-15, resin + tool)','Clear packing tape (immediate stopgap)','Razor blade'],
+  steps:['Act fast: a chip is a $15 DIY or often FREE via insurance; a spread crack is a $400+ windshield.','Immediately: clean tape over the chip keeps dirt and water out until you repair it. Avoid slamming doors and blasting the defroster (thermal shock spreads chips).','DIY kit: clean the chip, mount the pedestal over it, inject resin, let it penetrate, cure in sunlight per instructions, razor off the excess flush.','Works best on chips smaller than a quarter, not in the driver\'s direct sightline (repairs leave a faint mark).','Check your insurance FIRST: comprehensive coverage often includes chip repair with zero deductible - they will send someone to you.','Chips in the driver\'s view, cracks longer than a few inches, or chips at the glass edge = professional replacement territory.'] },
+
+/* ------------ HUMAN FIRST AID (until help arrives - not medical advice) ------------ */
+{ id:'r-choking', cat:'human', emoji:'🫁', title:'Choking - abdominal thrusts', time:'Act immediately', video:'how to help choking adult heimlich maneuver red cross',
+  warn:'First aid information, not medical advice. Have someone call 911 while you act.',
+  supplies:['Your hands - nothing else'],
+  steps:['Ask "Are you choking?" Coughing or speaking = airway is partly open; encourage hard coughing and stay close. Silent, clutching throat, can\'t breathe = act now.','Send someone to call 911 (or shout for it while you begin).','5 back blows: lean them forward, heel of your hand hard between the shoulder blades.','5 abdominal thrusts: stand behind, fist just above the navel, other hand over it, sharp inward-and-UP pulls.','Alternate 5 blows / 5 thrusts until the object flies out or they go limp. If they lose consciousness: lower them down and start CPR (chest compressions can dislodge the object).','Choking alone: call 911, then thrust your own abdomen over a chair back. Pregnant/large person: chest thrusts instead of abdominal. Get any thrust-recipient checked by a doctor after.'] },
+{ id:'r-cpr', cat:'human', emoji:'❤️‍🩹', title:'Hands-only CPR', time:'Until help arrives', video:'hands only CPR how to red cross american heart association',
+  warn:'First aid information, not medical advice. Call 911 first - the dispatcher will coach you in real time. A real CPR class makes you far more capable; consider taking one.',
+  supplies:['Speakerphone with 911 on the line','An AED if one is nearby (send someone to find one)'],
+  steps:['Person collapsed, unresponsive, not breathing normally (gasping counts as NOT normal): call 911 on speaker. The dispatcher guides you - you are not alone.','Kneel beside them on a firm surface, heel of one hand on the CENTER of the chest, other hand on top, arms locked straight.','Push HARD and FAST: at least 2 inches deep, 100-120 per minute (the beat of "Stayin\' Alive"). Let the chest fully rebound between pushes.','Do not stop except to use an AED or swap with another person - good compressions are exhausting; switch every 2 minutes if you can.','AED arrives: turn it on and follow its voice prompts exactly - it will not shock anyone who does not need it.','Ribs may crack. Keep going anyway - broken ribs heal; stopped hearts do not restart themselves. Compressions until paramedics take over.'] },
+{ id:'r-bleeding', cat:'human', emoji:'🩸', title:'Severe bleeding - stop the bleed', time:'Act immediately', video:'stop the bleed severe bleeding first aid pressure',
+  warn:'First aid information, not medical advice. Call 911 for any bleeding you cannot quickly control.',
+  supplies:['Clean cloth, gauze, or even a shirt','Gloves if instantly available (do not delay for them)'],
+  steps:['Call 911 (or have someone do it) for spurting, pooling, or soak-through bleeding.','PRESSURE: press the cloth hard directly on the wound with both hands, full body weight if needed. This is the single most important action.','Do NOT peek or lift the cloth to check - soaked through? Add more layers on TOP and keep pressing.','Elevate the limb above heart level while maintaining pressure if possible.','Deep object embedded in a wound: do NOT pull it out - it may be plugging a vessel. Press around it.','Keep pressure until help arrives. If trained and it is a life-threatening limb bleed that pressure cannot control, a tourniquet high on the limb ("high and tight", note the time) - this is what Stop-the-Bleed courses teach in 90 minutes; worth taking.'] },
+{ id:'r-burns', cat:'human', emoji:'🔥', title:'Burns - first response', time:'20 min', video:'burn first aid what to do cool running water',
+  warn:'First aid information, not medical advice. Call 911 for large, deep, or airway burns.',
+  supplies:['Cool running water','Clean non-stick dressing or cling film','NO ice, butter, or toothpaste - all make it worse'],
+  steps:['Cool the burn under cool (not icy) RUNNING water for a full 20 minutes - this is the treatment, and it keeps working up to 3 hours after the burn. Do not cut it short.','Remove rings/watches/tight clothing near the area before swelling - but never peel off clothing stuck to the burn.','Cover loosely with a non-stick dressing or plastic cling film (surprisingly, the clean burn dressing hospitals suggest).','Blisters: leave them intact - they are sterile dressings your body made.','911 / ER for: burns bigger than the person\'s palm, any deep/white/painless burn, burns to face, hands, feet, groin, or from electricity/chemicals, or any smoke inhalation (coughing, hoarse voice).','Minor burns after cooling: aloe or plain moisturizer, loose cover, watch for infection (spreading redness, pus, fever = doctor).'] },
+{ id:'r-cuts', cat:'human', emoji:'🩹', title:'Cuts & scrapes - clean and close', time:'15 min', video:'how to treat cuts scrapes wound care first aid',
+  warn:'First aid information, not medical advice.',
+  supplies:['Clean water','Antibiotic ointment','Bandages / butterfly closures','Tweezers (for debris)'],
+  steps:['Wash your hands. Press with clean cloth until minor bleeding stops (a few minutes).','Rinse the wound thoroughly under running water; tweeze out debris. Skip alcohol/peroxide IN the wound - they damage tissue; soap around it, water in it.','Thin ointment layer, then bandage. Change daily and when wet.','Gaping edges that a butterfly strip can pull together = fine for shallow cuts; if fat/muscle is visible, edges will not stay together, or it is on a joint/face - stitches, ideally within 6-8 hours.','See a doctor for: puncture wounds (especially stepping on a nail), animal or human bites, dirty wounds you cannot fully clean, or if the person is not current on tetanus (10-year cycle - the Life Admin PM tracks it via physicals).','Infection watch over days: increasing redness, warmth, swelling, pus, red streaks, fever = medical care now.'] },
+{ id:'r-sprain', cat:'human', emoji:'🦶', title:'Sprains & strains - RICE', time:'First 48 hrs', video:'how to treat sprained ankle RICE method',
+  warn:'First aid information, not medical advice.',
+  supplies:['Ice or frozen peas + thin towel','Elastic compression bandage','Pillows for elevation'],
+  steps:['Stop the activity. Weight-bearing test: cannot take 4 steps, or there is deformity, numbness, or a "pop" with instant swelling = get an X-ray; that may be a fracture.','Rest: off the injury as much as possible for 48 hours.','Ice: 15-20 minutes through a thin towel, every 2-3 hours while awake, for the first 48 hours. Never ice directly on skin.','Compression: wrap snug but not tight (toes/fingers stay pink and warm), starting furthest from the heart, working up.','Elevation: above heart level whenever sitting/lying - it drains the swelling.','After 48-72 hours: gentle movement and progressive use beat total immobilization for recovery. Not improving in a few days, or wobbly-unstable joints = doctor.'] },
+{ id:'r-nosebleed', cat:'human', emoji:'👃', title:'Nosebleed', time:'15 min', video:'how to stop a nosebleed correctly pinch lean forward',
+  warn:'First aid information, not medical advice.',
+  supplies:['Tissues','A clock (people always quit pinching too early)'],
+  steps:['Sit UP and lean FORWARD (not back - swallowed blood causes vomiting).','Pinch the SOFT part of the nose (just below the bony bridge) firmly closed.','Hold 10-15 minutes straight by the clock - no peeking; releasing early restarts it.','Breathe through the mouth; spit out any blood in the throat.','After it stops: no nose-blowing, picking, or heavy lifting for 24 hours. A cold pack on the bridge helps.','Seek care if: still bleeding after two 15-minute rounds, it follows a head/face injury, the person takes blood thinners, or blood is pouring down the throat. Frequent nosebleeds = worth a doctor conversation (often fixable).'] },
+{ id:'r-allergy', cat:'human', emoji:'🐝', title:'Severe allergic reaction & stings', time:'Act immediately', video:'anaphylaxis first aid epipen how to use',
+  warn:'First aid information, not medical advice. Anaphylaxis = 911, every time, even if the EpiPen works.',
+  supplies:['Epinephrine auto-injector if prescribed (know where it is!)','Antihistamine for mild reactions','Credit card (for scraping stingers)'],
+  steps:['Mild sting/bite: scrape the stinger out sideways with a card (do not squeeze it), wash, cold pack, antihistamine for itch. Watch 30 minutes.','ANAPHYLAXIS signs: trouble breathing, throat/tongue swelling, widespread hives, dizziness, vomiting after exposure - call 911 NOW.','If they carry an EpiPen: use it immediately - blue to the sky, orange to the thigh, press hard into the OUTER thigh (through clothes is fine), hold 3 seconds.','Note the time. If no improvement in 5-10 minutes and a second pen exists, use it.','Lay them flat with legs raised (unless breathing is easier sitting); do not stand them up suddenly.','ER even if fully recovered - reactions rebound hours later ("biphasic"). Known allergies deserve a real emergency plan and two pens.'] },
+{ id:'r-heat', cat:'human', emoji:'🥵', title:'Heat exhaustion & heat stroke', time:'Act now', video:'heat exhaustion vs heat stroke first aid signs',
+  warn:'First aid information, not medical advice. Heat STROKE (confusion, ~104°F, passing out) = 911 immediately.',
+  supplies:['Water or sports drink','Cool wet cloths / ice packs','Shade or AC'],
+  steps:['Heat EXHAUSTION: heavy sweating, weakness, nausea, headache, cool clammy skin. Move to shade/AC, lie down, sip water or sports drink.','Cool aggressively: wet cloths on skin, fan them, ice packs to neck, armpits, groin (where big vessels run).','Loosen/remove excess clothing.','No improvement in 30 minutes, or vomiting that prevents drinking = medical care.','Heat STROKE red flags: confusion, slurred speech, hot skin (sweating may have STOPPED), staggering, unconsciousness. Call 911 and cool them with everything available - this is a life threat measured in minutes. Do not give drinks to someone confused or drowsy.','Prevention beats all: hydrate before yard work, work mornings in summer, and know that certain meds and age raise the risk.'] },
+{ id:'r-faint', cat:'human', emoji:'😵', title:'Fainting', time:'10 min', video:'fainting first aid what to do when someone faints',
+  warn:'First aid information, not medical advice.',
+  supplies:['Nothing - just floor space and a pillow-ish thing'],
+  steps:['Feeling faint (lightheaded, vision graying, clammy): lie down NOW and raise the legs, or sit head-between-knees. Fighting it while standing is how heads hit tables.','Someone faints: ease them to the ground, lay them flat, raise legs ~12 inches, loosen tight collars.','They usually come around in under a minute. Keep them lying 10-15 minutes - standing up immediately causes round two.','Check for injuries from the fall, especially the head.','Call 911 if: no response within a minute, they fainted during exercise, chest pain/palpitations preceded it, they are pregnant, injured, or this is a repeat pattern - those need real evaluation.','After a simple faint (locked knees, heat, blood draw, standing too fast): water, snack, and take it easy - but mention it to a doctor at the next visit.'] },
+{ id:'r-poison', cat:'human', emoji:'☠️', title:'Poisoning & swallowed substances', time:'Act now', video:'poison control what to do accidental poisoning first aid',
+  warn:'First aid information, not medical advice. US Poison Control: 1-800-222-1222 - free, 24/7, expert, and faster than searching the internet.',
+  supplies:['The container/label of whatever was taken','Poison Control number saved in your phone NOW: 1-800-222-1222'],
+  steps:['Unconscious, seizing, or struggling to breathe = 911 first.','Otherwise call Poison Control immediately: 1-800-222-1222. They handle everything from "kid licked a dishwasher pod" to medication double-doses, judgment-free.','Have ready: what, how much, when, the person\'s age/weight, and the container in your hand.','Do NOT induce vomiting or give anything (milk, charcoal, ipecac) unless Poison Control tells you to - old advice like ipecac is now known to cause harm.','Chemical on skin: rinse with running water 15-20 minutes, remove contaminated clothing. In the eye: flush lukewarm water 15+ minutes, blinking. Inhaled fumes: fresh air immediately.','Prevention pass (ties to your PM): meds locked/high, cleaners separated from food, original containers always - most poisonings are kids under 6 in ordinary homes.'] },
+{ id:'r-stroke', cat:'human', emoji:'🧠', title:'Stroke - recognize FAST', time:'Act immediately', video:'stroke signs FAST test what to do',
+  warn:'First aid information, not medical advice. Suspected stroke = 911 immediately. Minutes of delay cost brain.',
+  supplies:['A clock - note exactly when symptoms started (treatment decisions depend on it)'],
+  steps:['FAST: Face - ask them to smile; one side droops? Arms - raise both; one drifts down? Speech - repeat a sentence; slurred or strange? Time - ANY of those = call 911 now.','Also sudden: numbness one side, confusion, vision loss, severe "worst ever" headache, loss of balance.','Note the time symptoms started (or when they were last seen normal) - tell the paramedics; clot-busting treatment is time-limited.','Keep them still, lying with head slightly raised. Nothing to eat or drink (swallowing may be impaired).','Do NOT give aspirin for a suspected stroke (unlike heart attacks, some strokes are bleeds and aspirin worsens them). Let the hospital decide.','Symptoms that vanish after minutes (a "mini-stroke"/TIA) are NOT a relief - they are a warning of a full stroke coming. Same-day medical care, always.'] },
+
+/* ------------ PET FIRST AID (until the vet - not veterinary advice) ------------ */
+{ id:'r-pet-choke', cat:'pet', emoji:'🐕', title:'Choking pet', time:'Act immediately', video:'pet choking first aid dog cat heimlich',
+  warn:'First aid until the vet - not veterinary advice. A choking, panicking animal may bite even you; mind your hands.',
+  supplies:['Phone: your vet + nearest 24-hr emergency vet saved NOW'],
+  steps:['True choking: pawing at mouth, gagging with no sound, blue-ish tongue, panic. (Coughing/retching with noise usually is not full obstruction - let them work it out, watch closely.)','Open the mouth and look: see the object clearly? Sweep it out with a finger hook motion - but do not blindly push, you can wedge it deeper.','Small dog/cat: hold spine against your chest, fist just below the ribcage, quick upward thrusts. Or hold hind legs up ("wheelbarrow") with downward gravity assist.','Large dog: standing behind, fist under the ribs where the belly softens, sharp in-and-up thrusts, like the human version.','Between rounds of thrusts, recheck the mouth. Object out but pet limp: pet CPR (see that guide) and drive to the ER vet.','Even if it comes out fine, a vet check the same day - thrusts can bruise organs and throats swell.'] },
+{ id:'r-pet-cpr', cat:'pet', emoji:'🫀', title:'Pet CPR basics', time:'Until at the vet', video:'how to do CPR on a dog cat pet CPR',
+  warn:'First aid until the vet - not veterinary advice. Have someone drive to the emergency vet WHILE you do compressions.',
+  supplies:['A second person and a car, ideally'],
+  steps:['Confirm: unresponsive, not breathing, no heartbeat (feel the chest just behind the left front elbow).','Lay the pet on its RIGHT side on a firm surface (barrel-chested dogs like bulldogs: on their back).','Compress over the heart (behind the left elbow) for most pets; widest part of the chest for deep-chested dogs. Cats/small dogs: one hand or thumb-and-fingers around the chest.','Rate 100-120/minute (same "Stayin\' Alive" beat), compressing 1/3 to 1/2 the chest width, letting it fully rebound.','After each 30 compressions: close the mouth, extend the neck, and give 2 breaths into the NOSE until the chest rises.','Continue en route to the ER vet - one person compressing, one driving. Call ahead so they meet you at the door.'] },
+{ id:'r-pet-bleed', cat:'pet', emoji:'🩸', title:'Bleeding & wounds (pet)', time:'Act now', video:'pet wound bleeding first aid dog cat',
+  warn:'First aid until the vet - not veterinary advice. Injured pets bite - muzzle or towel-wrap first if breathing is normal.',
+  supplies:['Gauze or clean cloth','Self-adhering vet wrap (stretchy, no adhesive on fur)','Soft muzzle or a towel','Saline or clean water'],
+  steps:['Protect yourself: gentle muzzle (NOT if vomiting or breathing badly) or towel-burrito for cats.','Direct pressure with gauze/cloth on the wound, several minutes without peeking. Soak-through: add layers on top.','Minor scrapes: clip fur carefully around the edges, flush with saline, thin antibiotic ointment WITHOUT pain-relief additives (no lidocaine/pramoxine for pets), light wrap.','Wrap snug, never tight - two fingers must slide under, and check the paw does not swell below the wrap.','Vet same-day for: punctures (especially bites - they infect almost every time), anything deep or gaping, embedded objects (do not pull), or blood that will not stop in 5-10 minutes.','No human pain meds EVER - ibuprofen, acetaminophen, naproxen, and aspirin are all toxic to dogs and cats at ordinary human doses.'] },
+{ id:'r-pet-poison', cat:'pet', emoji:'🍫', title:'Pet poisoning - chocolate, grapes & more', time:'Act now', video:'pet poison what to do dog ate chocolate toxic foods',
+  warn:'First aid until the vet - not veterinary advice. ASPCA Poison Control: 888-426-4435 (fee applies, 24/7, worth it) - save it now.',
+  supplies:['Packaging of what they ate','ASPCA Poison Control saved: 888-426-4435 (or Pet Poison Helpline 855-764-7661)'],
+  steps:['Call the poison line or your vet immediately with: what, how much, when, and your pet\'s weight. Toxicity is dose-per-pound math - the pros calculate it fast.','Do NOT induce vomiting unless a professional tells you to (some substances burn worse coming back up; some pets should never vomit).','Common toxins worth memorizing: chocolate (darker = worse), grapes/raisins, xylitol (sugar-free gum, some peanut butters - tiny amounts are emergencies), onions/garlic, macadamias, alcohol, THC edibles, lilies (deadly to cats - even pollen), antifreeze (sweet-tasting, lethal), rodent bait, human meds.','Bring the packaging to the vet - dosing info speeds treatment.','Time matters enormously: treatment within 1-2 hours often means induced vomiting + charcoal and a good night; waiting for symptoms means organ damage is underway.','Prevention: pet-proof like toddler-proofing - trash locked, counters clear, xylitol products and meds out of reach, no lilies in cat homes.'] },
+{ id:'r-pet-heat', cat:'pet', emoji:'🥵', title:'Pet heatstroke', time:'Act immediately', video:'dog heatstroke signs first aid cooling',
+  warn:'First aid until the vet - not veterinary advice. Heatstroke kills pets fast - cool AND go to the vet, not either/or.',
+  supplies:['Cool (not ice-cold) water','Towels','Fan / car AC','Rectal thermometer if you have one (over 104°F = emergency)'],
+  steps:['Signs: frantic panting, thick drool, bright red gums, staggering, vomiting, collapse. Flat-faced breeds (pugs, bulldogs, Persians) hit danger far sooner.','Move to shade/AC immediately.','Cool with COOL water - hose, wet towels swapped frequently (a soaked towel left on traps heat), focusing belly, armpits, paws. NOT ice water: it constricts vessels and traps core heat.','Fan them; offer small amounts of water to drink, never forced.','Go to the vet even if they perk up - heatstroke\'s real damage (organs, clotting) unfolds over the next hours invisibly.','Prevention is everything: NEVER a parked car (78° outside = 100°+ inside in minutes), shade+water outdoors, walks at dawn/dusk in summer, and watch the humidity - panting stops working in humid heat.'] },
+{ id:'r-pet-seizure', cat:'pet', emoji:'⚡', title:'Pet seizure - what to do', time:'Usually 1-3 min', video:'dog seizure what to do first aid',
+  warn:'First aid until the vet - not veterinary advice.',
+  supplies:['Phone (video the seizure - it genuinely helps the vet)','A clock - time it'],
+  steps:['Stay calm. Do NOT touch their mouth - pets cannot swallow their tongues, and seizing jaws break fingers.','Clear the area: move furniture, block stairs. Slide a cushion under the head if easy. Dim lights, quiet voices.','Time it and video it - length and pattern guide diagnosis.','Most seizures stop within 1-3 minutes. Afterward they will be disoriented, wobbly, maybe temporarily blind - keep them confined, calm, and speak softly; they may not recognize you for a bit.','EMERGENCY (go now): seizure over 5 minutes, multiple seizures in a day, trouble breathing after, or first-ever seizure in a senior pet.','First-ever seizure that resolves: same-week vet visit regardless with your video - causes range from benign to treatable-if-caught (including toxins - see the poisoning guide).'] },
+{ id:'r-pet-paw', cat:'pet', emoji:'🐾', title:'Cut paw pad', time:'20 min', video:'dog cut paw pad first aid bandage',
+  warn:'First aid until the vet - not veterinary advice.',
+  supplies:['Saline or clean water','Gauze + self-adhering vet wrap','Clean sock + tape (the classic paw bootie)','Tweezers'],
+  steps:['Paw cuts bleed dramatically - do not panic at the volume. Pressure with gauze for 5 solid minutes.','Rinse well: saline or clean water; tweeze out glass/gravel you can see clearly. Something deeply embedded stays in - vet\'s job.','Dry, then wrap: gauze pad on the pad, wrap around paw AND up over the wrist/ankle joint so it stays on, snug not tight (two toes visible = check them for swelling).','Sock over the wrap, taped to fur at the top - the licking barrier matters as much as the bandage; licking reopens and infects.','Change daily; keep it dry outside (plastic bag over the bootie for potty breaks, removed after).','Vet if: deeper than a surface slice (pads heal poorly and may need glue/stitches), a flap of pad hanging, limping past 2 days, or any swelling/odor/discharge.'] },
+];
 
 /* ============================== STORAGE ============================== */
 const STORE_KEY = 'homeMaintenanceData_v1';
@@ -996,6 +1304,10 @@ function saveData(d) {
 let data = loadData();
 if (!data.completions) data.completions = {};
 if (!data.profile) data.profile = { name: 'Sid', location: '', age: '' };
+if (!data.profile.homeType) data.profile.homeType = 'townhome';
+if (!data.profile.carType) data.profile.carType = 'gas';
+if (data.profile.gender == null) data.profile.gender = '';
+if (!data.profile.disabledDomains) data.profile.disabledDomains = [];
 if (!data.custom) data.custom = [];
 if (!data.hidden) data.hidden = [];
 if (!data.overrides) data.overrides = {};
@@ -1068,7 +1380,9 @@ function renderSegs() {
   const defs = [['all','All'],['home','🏠 Home'],['auto','🚗 Car'],['health','❤️ Health'],['pets','🐾 Pets'],['admin','📋 Life Admin']];
   const seenCat = {};
   for (const t of allTasks()) if (t.catName && !seenCat[t.domain]) { seenCat[t.domain] = 1; defs.push([t.domain, '⭐ ' + t.catName]); }
-  $('segs').innerHTML = defs.map(([f,l]) => `<button class="seg ${domain===f?'sel':''}" data-d="${f}">${l}</button>`).join('');
+  const vts = visibleTasks();
+  const live = defs.filter(([f]) => f === 'all' || vts.some(t => domainOf(t) === f));
+  $('segs').innerHTML = live.map(([f,l]) => `<button class="seg ${domain===f?'sel':''}" data-d="${f}">${l}</button>`).join('');
   document.querySelectorAll('.seg').forEach(el => el.onclick = () => { domain = el.dataset.d; renderAll(); });
 }
 
@@ -1139,20 +1453,82 @@ function renderList() {
 function renderAll() { renderSegs(); renderStats(); renderChips(); renderList(); }
 
 /* ---------- Landing page ---------- */
+function setTab(t) { document.querySelectorAll('.tabbar .tab').forEach(el => el.classList.toggle('sel', el.dataset.tab === t)); }
+function hideViews() { $('landing').style.display = 'none'; $('listView').style.display = 'none'; $('repairView').style.display = 'none'; }
 function showList(d, f) {
   domain = d; filter = f || 'all';
   searchQ = ''; $('searchBox').value = '';
-  $('landing').style.display = 'none';
+  hideViews();
   $('listView').style.display = '';
+  setTab('pm');
   renderAll();
   window.scrollTo(0, 0);
 }
 function showLanding() {
-  $('listView').style.display = 'none';
+  hideViews();
   $('landing').style.display = '';
+  setTab('home');
   renderLanding();
   window.scrollTo(0, 0);
 }
+
+/* ---------- Repair & First Aid view ---------- */
+let rcat = 'home', rsearch = '';
+const RCATS = [['home','🏠 Home'],['auto','🚗 Car'],['human','🧍 First Aid'],['pet','🐾 Pet First Aid']];
+function showRepair() {
+  hideViews();
+  $('repairView').style.display = '';
+  setTab('repair');
+  renderRepair();
+  window.scrollTo(0, 0);
+}
+function renderRepair() {
+  $('rChips').innerHTML = RCATS.map(([c, l]) => `<button class="chip ${rcat === c ? 'sel' : ''}" data-rc="${c}">${l}</button>`).join('');
+  document.querySelectorAll('#rChips .chip').forEach(el => el.onclick = () => { rcat = el.dataset.rc; renderRepair(); });
+  let list = rsearch ? REPAIRS.filter(r => r.title.toLowerCase().includes(rsearch)) : REPAIRS.filter(r => r.cat === rcat);
+  let html = '';
+  if (!rsearch && (rcat === 'human' || rcat === 'pet')) {
+    html += `<div class="backup-warn" style="margin-bottom:10px">⚠️ First aid reference only - not ${rcat === 'pet' ? 'veterinary' : 'medical'} advice. In an emergency, ${rcat === 'pet' ? 'call your vet or ASPCA Poison Control (888-426-4435)' : 'call 911'} first.</div>`;
+  }
+  html += list.map(r => `<div class="card" data-rid="${r.id}">
+    <div class="emoji">${r.emoji}</div>
+    <div class="mid"><div class="t">${r.title}</div><div class="meta"><span>⏱ ${r.time}</span></div></div>
+    <div class="land-arrow">›</div>
+  </div>`).join('') || '<div class="empty">No matches.</div>';
+  $('rList').innerHTML = html;
+  document.querySelectorAll('#rList .card').forEach(el => el.onclick = () => openRepair(el.dataset.rid));
+}
+function openRepair(id) {
+  const r = REPAIRS.find(x => x.id === id);
+  if (!r) return;
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">${r.emoji}</div>
+      <div style="flex:1;min-width:0">
+        <h2>${r.title}</h2>
+        <div class="freq-line">Repair guide · ⏱ ${r.time}</div>
+      </div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    ${r.warn ? `<div class="status-strip overdue">⚠️ ${r.warn}</div>` : ''}
+    <div class="sec"><h3>What you need</h3><div class="supplies">${r.supplies.map((sp, i) => `<div class="supply"><input type="checkbox" id="rsp${i}"><label for="rsp${i}">${sp}</label></div>`).join('')}</div></div>
+    <div class="sec"><h3>What to do</h3><ol class="steps">${r.steps.map(st => `<li><span>${st}</span></li>`).join('')}</ol>
+    <a class="video-btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(r.video)}"><span class="yt">▶</span> Watch how-to videos on YouTube</a></div>
+    <div style="height:12px"></div>`;
+  $('closeBtn').onclick = closeTask;
+  $('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  $('sheet').scrollTop = 0;
+}
+$('rSearch').oninput = () => { rsearch = $('rSearch').value.trim().toLowerCase(); renderRepair(); };
+document.querySelectorAll('.tabbar .tab').forEach(el => el.onclick = () => {
+  const t = el.dataset.tab;
+  if (t === 'home') showLanding();
+  else if (t === 'pm') showList('all');
+  else if (t === 'repair') showRepair();
+  else openProfile();
+});
 /* Life Score: each check scores by timeliness - on-track 100, due soon 70,
    overdue 30, not started 0. Fitness scores by weekly progress (count/target).
    A domain's score is the average of its checks; Life Score averages all checks. */
@@ -1210,7 +1586,8 @@ function renderLanding() {
     </div>
     <div>
       <div class="score-t">UpKeep Score</div>
-      <div class="score-d">How well-maintained everything is, across all ${vts.length} checks - safety-critical checks count extra. Every completed check raises it. Method in the footnote below.</div>
+      <div class="score-d">Across your ${vts.length} active checks - safety-critical ones count extra. Method in the footnote.</div>
+      <div class="score-mot">${sc >= 80 ? '🏆 Elite upkeep - everything is humming.' : sc >= 60 ? '🌟 Well maintained - the top tier is close.' : sc >= 30 ? '📈 Real momentum - keep it rolling.' : sc > 0 ? '🌱 Every check you complete builds the habit.' : '👋 Tap a checklist below to knock out your first check.'}</div>
     </div>
   </div>`;
 
@@ -1237,7 +1614,8 @@ function renderLanding() {
     parts.push('Score <b style="color:' + scoreColor(dsc) + '">' + dsc + '</b>');
     return `<div class="land-card" data-d="${d}">
       <div class="land-emoji">${e}</div>
-      <div><div class="land-t">${l}</div><div class="land-sub">${parts.join(' · ')}</div></div>
+      <div style="flex:1;min-width:0"><div class="land-t">${l}</div><div class="land-sub">${parts.join(' · ')}</div>
+        <div class="prog"><div style="width:${dsc}%;background:${scoreColor(dsc)}"></div></div></div>
       <div class="land-arrow">›</div>
     </div>`;
   }).join('');
@@ -1270,8 +1648,12 @@ function renderLanding() {
   }
 
   const hiddenN = (data.hidden || []).length;
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const gEmoji = hour < 12 ? '☀️' : hour < 17 ? '🌤️' : '🌙';
   $('landing').innerHTML =
-    `<div class="tagline">Preventive maintenance for your whole life - scheduled checklists with step-by-step how-to guides, so small upkeep never becomes big repairs.</div>`
+    `<div class="greet">${greet}, ${esc((data.profile || {}).name || 'there')} ${gEmoji}</div>`
+    + `<div class="tagline">Preventive maintenance for your whole life - small upkeep now, no big repairs later.</div>`
     + scoreHtml + statsHtml + backupWarn + weekHtml
     + `<div class="group-h" style="margin-top:20px"><h2>Preventive Maintenance Checklists</h2></div>`
     + cardsHtml
@@ -1630,6 +2012,10 @@ $('importFile').onchange = e => {
       if (!d) throw new Error('bad file');
       data = d;
       if (!data.profile) data.profile = { name: 'Sid', location: '', age: '' };
+      if (!data.profile.homeType) data.profile.homeType = 'townhome';
+      if (!data.profile.carType) data.profile.carType = 'gas';
+      if (data.profile.gender == null) data.profile.gender = '';
+      if (!data.profile.disabledDomains) data.profile.disabledDomains = [];
       if (!data.custom) data.custom = [];
       if (!data.hidden) data.hidden = [];
       if (!data.overrides) data.overrides = {};
@@ -1679,18 +2065,55 @@ function openProfile() {
     <div class="sec"><h3>Name</h3><input class="p-input" id="pName" value="${esc(p.name)}" placeholder="Your name"></div>
     <div class="sec"><h3>Location</h3><input class="p-input" id="pLoc" value="${esc(p.location)}" placeholder="City, State"></div>
     <div class="sec"><h3>Age</h3><input class="p-input" id="pAge" type="number" min="1" max="120" inputmode="numeric" value="${esc(p.age)}" placeholder="Age in years"></div>
+    <div class="sec"><h3>Gender</h3>
+      <select class="p-input" id="pGender">
+        <option value="">Prefer not to say</option>
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
+      <div class="tagline" style="margin-top:6px">Age and gender unlock the right health screenings for you (mammogram, prostate, colorectal, and more).</div></div>
+    <div class="sec"><h3>Your home</h3>
+      <select class="p-input" id="pHome">
+        <option value="townhome">Townhome (HOA maintains exterior)</option>
+        <option value="condo">Condo / Apartment</option>
+        <option value="single">Single Family Home</option>
+      </select>
+      <div class="tagline" style="margin-top:6px">Single family adds exterior checks (gutters, roof, winterizing). Condo removes garage, attic and outdoor-unit checks.</div></div>
+    <div class="sec"><h3>Your car(s)</h3>
+      <select class="p-input" id="pCar">
+        <option value="gas">Gas</option>
+        <option value="electric">Electric</option>
+        <option value="both">Both / mixed</option>
+      </select>
+      <div class="tagline" style="margin-top:6px">Electric swaps oil changes and engine filters for charger and battery checks.</div></div>
+    <div class="sec"><h3>Which checklists apply to you?</h3>
+      <div class="supplies">
+        ${[['home','🏠 Home Maintenance'],['auto','🚗 Car Maintenance'],['health','❤️ Health Maintenance'],['pets','🐾 Pet Maintenance'],['admin','📋 Life Admin PM']]
+          .map(([d, l]) => `<div class="supply"><input type="checkbox" id="dm_${d}" ${(p.disabledDomains || []).includes(d) ? '' : 'checked'}><label for="dm_${d}" style="text-decoration:none;color:var(--ink)">${l}</label></div>`).join('')}
+      </div>
+      <div class="tagline" style="margin-top:6px">Unchecked categories disappear from the app and never count against your score.</div></div>
     <div class="actions"><button class="btn primary" id="pSave">Save profile</button></div>`;
+  $('pGender').value = p.gender || '';
+  $('pHome').value = p.homeType || 'townhome';
+  $('pCar').value = p.carType || 'gas';
   $('closeBtn').onclick = closeTask;
   $('pSave').onclick = () => {
+    const disabled = [];
+    for (const d of ['home','auto','health','pets','admin']) if (!$('dm_' + d).checked) disabled.push(d);
     data.profile = {
       name: $('pName').value.trim() || 'You',
       location: $('pLoc').value.trim(),
       age: $('pAge').value.trim(),
+      gender: $('pGender').value,
+      homeType: $('pHome').value,
+      carType: $('pCar').value,
+      disabledDomains: disabled,
     };
     saveData(data);
     renderProfile();
     closeTask();
-    toast('Profile saved');
+    refreshViews();
+    toast('Profile saved - checklists updated');
   };
   $('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
