@@ -1753,7 +1753,7 @@ function renderLanding() {
 
   const sc = lifeScore(vts);
   const C = 2 * Math.PI * 40;
-  const scoreHtml = `<div class="score-card">
+  const scoreHtml = `<div class="score-card" id="scoreCard" style="cursor:pointer">
     <div class="ring">
       <svg width="88" height="88" viewBox="0 0 88 88">
         <circle cx="44" cy="44" r="40" fill="none" stroke="var(--grid)" stroke-width="7"/>
@@ -1764,7 +1764,7 @@ function renderLanding() {
     </div>
     <div>
       <div class="score-t">UpKeep Score</div>
-      <div class="score-d">Across your ${vts.length} active checks - safety-critical ones count extra. Method in the footnote.</div>
+      <div class="score-d">Across your ${vts.length} active checks. Tap for the full analysis ›</div>
       <div class="score-mot">${sc >= 80 ? '🏆 Elite upkeep - everything is humming.' : sc >= 60 ? '🌟 Well maintained - the top tier is close.' : sc >= 30 ? '📈 Real momentum - keep it rolling.' : sc > 0 ? '🌱 Every check you complete builds the habit.' : '👋 Tap a checklist below to knock out your first check.'}</div>
       <button class="share-pill" id="shareBtn">📤 Share my score</button>
     </div>
@@ -1833,7 +1833,76 @@ function renderLanding() {
   document.querySelectorAll('#landing .card').forEach(el => el.onclick = () => openTask(el.dataset.id));
   $('addCheckBtn').onclick = () => openCustomForm(null);
   if (hiddenN) $('hiddenBtn').onclick = openHiddenManager;
-  $('shareBtn').onclick = shareScore;
+  $('scoreCard').onclick = openScoreDetail;
+  $('shareBtn').onclick = (e) => { e.stopPropagation(); shareScore(); };
+}
+
+/* ---------- Score analysis sheet ---------- */
+function openScoreDetail() {
+  const vts = visibleTasks();
+  const sc = lifeScore(vts);
+  const totalW = vts.reduce((s, t) => s + taskWeight(t), 0) || 1;
+  let ok = 0, soon = 0, od = 0, never = 0;
+  vts.forEach(t => { const k = taskStatus(t).key; if (k === 'ok') ok++; else if (k === 'soon') soon++; else if (k === 'overdue') od++; else never++; });
+
+  const doms = [['home','🏠','Home'],['auto','🚗','Car'],['health','❤️','Health'],['pets','🐾','Pets'],['admin','📋','Life Admin']];
+  const seenCat = {};
+  for (const t of vts) if (t.catName && !seenCat[t.domain]) { seenCat[t.domain] = 1; doms.push([t.domain, '⭐', t.catName]); }
+  const catRows = doms.map(([d, e, l]) => {
+    const ts = vts.filter(t => domainOf(t) === d);
+    if (!ts.length) return '';
+    const dsc = lifeScore(ts);
+    const wShare = Math.round(ts.reduce((s, t) => s + taskWeight(t), 0) / totalW * 100);
+    return `<div style="padding:9px 0;border-bottom:1px solid var(--grid)">
+      <div style="display:flex;justify-content:space-between;font-size:13.5px"><span>${e} ${l}</span><span><b style="color:${scoreColor(dsc)}">${dsc}</b> <span style="color:var(--ink-3);font-size:11.5px">· ${wShare}% of score</span></span></div>
+      <div class="prog" style="margin-top:6px"><div style="width:${dsc}%;background:${scoreColor(dsc)}"></div></div>
+    </div>`;
+  }).join('');
+
+  const opps = vts.map(t => ({ t, s: taskStatus(t), gain: (100 - taskScore(t)) * taskWeight(t) / totalW }))
+    .filter(x => x.gain > 0.01)
+    .sort((a, b) => b.gain - a.gain)
+    .slice(0, 7);
+  const oppRows = opps.map(x => `<div class="h-row" data-open="${x.t.id}" style="cursor:pointer">
+    <span style="flex:1;min-width:0;padding-right:8px">${areaInfo(x.t).emoji} ${x.t.title}<br><span style="font-size:11.5px;color:var(--ink-3)">${x.s.label}${taskWeight(x.t) > 1 ? ' · counts ' + taskWeight(x.t) + 'x' : ''}</span></span>
+    <span style="flex:none;color:var(--good-text);font-weight:700">+${x.gain.toFixed(1)} pts</span>
+  </div>`).join('') || '<div class="h-none">Nothing left to gain - perfect score!</div>';
+
+  const verdict = sc >= 80 ? 'Elite territory. Your systems, health, and home are actively protected - maintenance is working for you.'
+    : sc >= 60 ? 'Well maintained overall. A handful of checks stand between you and the top tier - see the opportunities below.'
+    : sc >= 30 ? 'Momentum is real. The fastest gains now come from the highest-weighted items below - safety checks pay triple.'
+    : 'Early days - and that is fine. The score starts at zero by design; each completed check below moves it immediately.';
+
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">🎯</div>
+      <div style="flex:1;min-width:0"><h2>UpKeep Score: <span style="color:${scoreColor(sc)}">${sc}</span>/100</h2><div class="freq-line">Your maintenance health, in one number</div></div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    <div class="status-strip ${sc >= 80 ? 'ok' : sc >= 50 ? 'soon' : 'overdue'}">${sc >= 80 ? '🏆' : sc >= 50 ? '📈' : '🌱'} ${verdict}</div>
+    <div class="sec"><h3>Where you stand</h3><div class="history">
+      <div class="h-row"><span>✅ On track</span><span><b>${ok}</b> checks</span></div>
+      <div class="h-row"><span>🔔 Due soon</span><span><b>${soon}</b> checks</span></div>
+      <div class="h-row"><span>⚠️ Overdue</span><span><b>${od}</b> checks</span></div>
+      <div class="h-row"><span>◌ Not started</span><span><b>${never}</b> checks</span></div>
+    </div></div>
+    <div class="sec"><h3>By category</h3><div class="history">${catRows}</div></div>
+    <div class="sec"><h3>Biggest point opportunities</h3>
+      <div class="tagline" style="margin:0 0 8px">Complete these to raise your score the most. Tap one to see how.</div>
+      <div class="history">${oppRows}</div></div>
+    <div class="sec"><h3>How the score works</h3><div class="why">
+      Every check earns points by how on-schedule it is: <b>on track = 100</b>, <b>due soon = 70</b>, <b>overdue</b> starts at 60 and fades to 0 the longer it sits, <b>not started = 0</b>.
+      Checks are weighted by importance: life-safety checks (smoke detectors, fire, GFCI, dryer vent) count <b>3x</b>, high-impact checks (leaks, water heater, tires, physicals) count <b>2x</b>, routine checks 1x.
+      Fitness earns points for weekly workout progress, graded on last week early in a new week so Mondays don't dent you.
+      Your UpKeep Score is the weighted average across all ${vts.length} active checks - hidden and disabled checks are excluded.
+    </div></div>
+    <div style="height:12px"></div>`;
+  $('closeBtn').onclick = closeTask;
+  document.querySelectorAll('[data-open]').forEach(el => el.onclick = () => openTask(el.dataset.open));
+  $('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  $('sheet').scrollTop = 0;
 }
 function refreshViews() {
   renderAll();
@@ -2207,11 +2276,7 @@ function renderProfile() {
   $('profileBtn').textContent = (p.name || 'You') + ' ✎';
   const extra = [p.location, p.age ? 'age ' + p.age : null].filter(Boolean).join(' · ');
   $('profileSub').textContent = extra ? ' (' + extra + ')' : '';
-  $('footnote').innerHTML =
-    '<b>UpKeep Score:</b> on track = 100, due soon = 70, overdue fades 60 to 0, not started = 0. '
-    + 'Safety checks count 3x, high-impact 2x. Fitness scores by workouts logged each week. '
-    + 'Your score is the weighted average of all active checks.'
-    + '<br><br>© ' + new Date().getFullYear() + ' ' + esc(p.name || 'Sid') + '. All rights reserved.';
+  $('footnote').innerHTML = '© ' + new Date().getFullYear() + ' ' + esc(p.name || 'Sid') + '. All rights reserved.';
 }
 function openProfile() {
   const p = data.profile || {};
