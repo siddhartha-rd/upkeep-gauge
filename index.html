@@ -140,6 +140,37 @@
     width: 100%; padding: 13px; border-radius: 13px; border: 1px solid var(--hairline);
     background: var(--surface); color: var(--ink); font-family: inherit; font-size: 15px;
   }
+  .p-textarea {
+    width: 100%; min-height: 74px; padding: 12px; border-radius: 13px; border: 1px solid var(--hairline);
+    background: var(--surface); color: var(--ink); font-family: inherit; font-size: 14px; resize: vertical;
+  }
+  .ctrl-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 13px;
+    padding: 10px 14px; font-size: 14px; margin-bottom: 9px;
+  }
+  .mini-select {
+    background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 9px;
+    color: var(--ink); font-family: inherit; font-size: 13.5px; padding: 7px 9px; flex: none;
+  }
+  .link-btn {
+    display: block; width: 100%; text-align: center; background: none; border: none;
+    color: var(--accent); font-family: inherit; font-size: 13px; font-weight: 600; padding: 12px; cursor: pointer;
+  }
+  .add-card { border: 1.5px dashed var(--grid); background: none; box-shadow: none; justify-content: center; color: var(--ink-2); font-weight: 600; font-size: 15px; }
+  .backup-warn {
+    margin-top: 12px; padding: 10px 13px; border-radius: 12px;
+    background: color-mix(in srgb, var(--warning) 18%, var(--surface)); color: var(--warning-text);
+    font-size: 12.5px; font-weight: 600;
+  }
+  .hist-bars {
+    display: flex; align-items: flex-end; gap: 4px; height: 120px;
+    background: var(--surface); border: 1px solid var(--hairline); border-radius: 13px; padding: 12px 12px 8px;
+  }
+  .hist-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; height: 100%; }
+  .hist-bar { width: 100%; max-width: 18px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+  .hist-lbl { font-size: 9px; color: var(--ink-3); flex: none; }
+  #searchBox { margin-top: 12px; }
   .score-card {
     display: flex; align-items: center; gap: 16px; background: var(--surface);
     border: 1px solid var(--hairline); border-radius: 18px; padding: 15px 16px;
@@ -300,12 +331,17 @@
   <div id="landing"></div>
   <div id="listView" style="display:none">
     <button class="back-btn" id="backBtn">‹ Categories</button>
+    <input class="p-input" id="searchBox" type="search" placeholder="🔍 Search checks…">
     <div class="segs" id="segs"></div>
     <div class="stats" id="stats"></div>
     <div class="chips" id="chips"></div>
     <main id="list"></main>
   </div>
   <footer class="app">
+    <div class="frow">
+      <button id="icsBtn">📅 Export to Calendar</button>
+      <button id="histBtn">📈 History</button>
+    </div>
     <div class="frow">
       <button id="exportBtn">⬇︎ Backup data</button>
       <button id="importBtn">⬆︎ Restore</button>
@@ -916,6 +952,33 @@ const VIDEO_Q = {
 function videoFor(t) { return t.video || VIDEO_Q[t.id] || null; }
 function domainOf(t) { return t.domain || 'home'; }
 
+/* Importance weights for the UpKeep Score: life-safety checks count 3x, high-impact 2x, routine 1x */
+const WEIGHT = {
+  'smoke-co-test':3, 'detector-batteries':3, 'fire-extinguisher':3, 'fire-sprinkler':3,
+  'garage-safety':3, 'gfci-test':3, 'dryer-vent':3,
+  'leak-walk':2, 'wh-flush':2, 'washer-hoses':2, 'condensate-line':2, 'hvac-filters':2,
+  'sec-test':2, 'sec-batteries':2, 'car-tires':2, 'car-fluids':2, 'car-inspect':2,
+  'health-physical':2, 'health-dental':2, 'health-fitness':2, 'pet-flea':2,
+  'la-insurance':2, 'la-legal':2, 'la-emergency':2, 'la-passwords':2,
+};
+function taskWeight(t) { return t.weight || WEIGHT[t.id] || 1; }
+
+/* Seasonal anchors (months 1-12): these checks schedule to their right season, not just +N months */
+const ANCHOR = { 'health-flu':[9,10], 'condenser-coils':[3,4], 'hvac-tuneup':[4,10], 'ceiling-fans':[4,10] };
+function nextAnchorDate(from, months) {
+  for (let k = 1; k <= 24; k++) {
+    const d = new Date(from.getFullYear(), from.getMonth() + k, 15);
+    if (months.includes(d.getMonth() + 1) && (d - from) / 86400000 >= 60) return d;
+  }
+  return addMonths(from, 12);
+}
+
+function allTasks() { return TASKS.concat(data.custom || []); }
+function areaInfo(t) { return AREAS[t.area] || { name: t.catName || 'Custom', emoji: '⭐' }; }
+function isHidden(t) { return (data.hidden || []).includes(t.id); }
+function visibleTasks() { return allTasks().filter(t => !isHidden(t)); }
+function effMonths(t) { const o = data.overrides && data.overrides[t.id]; return o && o.months != null ? o.months : t.months; }
+
 /* ============================== STORAGE ============================== */
 const STORE_KEY = 'homeMaintenanceData_v1';
 let memoryFallback = null;
@@ -933,6 +996,9 @@ function saveData(d) {
 let data = loadData();
 if (!data.completions) data.completions = {};
 if (!data.profile) data.profile = { name: 'Sid', location: '', age: '' };
+if (!data.custom) data.custom = [];
+if (!data.hidden) data.hidden = [];
+if (!data.overrides) data.overrides = {};
 
 /* ============================== DATE HELPERS ============================== */
 const DAY = 86400000;
@@ -950,8 +1016,15 @@ function weekCount(task) {
   const ws = new Date(today); ws.setDate(today.getDate() - ((today.getDay() + 6) % 7)); // Monday
   return (data.completions[task.id] || []).filter(d => { const dt = parseISO(d); return dt >= ws && dt <= today; }).length;
 }
+function lastWeekCount(task) {
+  const today = parseISO(todayISO());
+  const ws = new Date(today); ws.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const pws = new Date(ws); pws.setDate(ws.getDate() - 7);
+  return (data.completions[task.id] || []).filter(d => { const dt = parseISO(d); return dt >= pws && dt < ws; }).length;
+}
 function taskStatus(task) {
-  if (task.months === 'w') {
+  const m = effMonths(task);
+  if (m === 'w') {
     const c = weekCount(task), target = task.target || 4;
     if (c >= target) return { key: 'ok', label: `✓ ${c}/${target} this week`, sort: 3, detail: `Weekly goal met - counter resets Monday` };
     if (c > 0) return { key: 'soon', label: `${c}/${target} this week`, sort: 1, detail: `${target - c} more workout${target - c > 1 ? 's' : ''} to complete this week` };
@@ -960,9 +1033,9 @@ function taskStatus(task) {
   const last = lastDone(task);
   const today = parseISO(todayISO());
   if (!last) return { key: 'never', label: 'Not started', sort: 1, detail: 'Never done - tap to see how' };
-  const due = addMonths(parseISO(last), task.months);
+  const due = ANCHOR[task.id] ? nextAnchorDate(parseISO(last), ANCHOR[task.id]) : addMonths(parseISO(last), m);
   const days = daysBetween(today, due);
-  const window_ = task.months === 1 ? 5 : task.months === 3 ? 14 : 21;
+  const window_ = m === 1 ? 5 : m === 3 ? 14 : 21;
   if (days < 0) return { key: 'overdue', label: 'Overdue ' + Math.abs(days) + 'd', sort: 0, due, detail: 'Was due ' + fmt(due) };
   if (days === 0) return { key: 'overdue', label: 'Due today', sort: 0, due, detail: 'Due today' };
   if (days <= window_) return { key: 'soon', label: 'Due in ' + days + 'd', sort: 2, due, detail: 'Due ' + fmt(due) };
@@ -971,11 +1044,12 @@ function taskStatus(task) {
 const STATUS_ICON = { overdue: '⚠️', soon: '🔔', ok: '✅', never: '◌' };
 
 /* ============================== RENDER ============================== */
-let filter = 'all'; // all | overdue | soon | 1 | 3 | 6 | 12
-let domain = 'all'; // all | home | auto | health
+let filter = 'all'; // all | overdue | soon | w | 1 | 3 | 6 | 12
+let domain = 'all'; // all | home | auto | health | pets | admin
+let searchQ = '';
 const $ = id => document.getElementById(id);
 
-function dTasks() { return TASKS.filter(t => domain === 'all' || domainOf(t) === domain); }
+function dTasks() { return visibleTasks().filter(t => domain === 'all' || domainOf(t) === domain); }
 
 function counts() {
   let overdue = 0, soon = 0, ok = 0, never = 0;
@@ -992,6 +1066,8 @@ function counts() {
 
 function renderSegs() {
   const defs = [['all','All'],['home','🏠 Home'],['auto','🚗 Car'],['health','❤️ Health'],['pets','🐾 Pets'],['admin','📋 Life Admin']];
+  const seenCat = {};
+  for (const t of allTasks()) if (t.catName && !seenCat[t.domain]) { seenCat[t.domain] = 1; defs.push([t.domain, '⭐ ' + t.catName]); }
   $('segs').innerHTML = defs.map(([f,l]) => `<button class="seg ${domain===f?'sel':''}" data-d="${f}">${l}</button>`).join('');
   document.querySelectorAll('.seg').forEach(el => el.onclick = () => { domain = el.dataset.d; renderAll(); });
 }
@@ -1014,13 +1090,13 @@ function renderChips() {
 
 function cardHTML(t) {
   const s = taskStatus(t);
-  const a = AREAS[t.area];
+  const a = areaInfo(t);
   const last = lastDone(t);
   return `<div class="card" data-id="${t.id}">
     <div class="emoji">${a.emoji}</div>
     <div class="mid">
       <div class="t">${t.title}</div>
-      <div class="meta"><span>${a.name} · ${freqLabel(t.months)}</span><span>${last ? 'Last: ' + fmtISO(last) : ''}</span></div>
+      <div class="meta"><span>${a.name} · ${freqLabel(effMonths(t))}</span><span>${last ? 'Last: ' + fmtISO(last) : ''}</span></div>
     </div>
     <span class="badge ${s.key}">${STATUS_ICON[s.key]} ${s.label}</span>
   </div>`;
@@ -1029,13 +1105,14 @@ function cardHTML(t) {
 function renderList() {
   let tasks = dTasks();
   if (['overdue','soon','ok'].includes(filter)) tasks = tasks.filter(t => taskStatus(t).key === filter);
-  else if (filter !== 'all') tasks = tasks.filter(t => String(t.months) === filter);
+  else if (filter !== 'all') tasks = tasks.filter(t => String(effMonths(t)) === filter);
+  if (searchQ) tasks = tasks.filter(t => (t.title + ' ' + areaInfo(t).name).toLowerCase().includes(searchQ));
 
   let html = '';
   if (filter === 'all' || ['overdue','soon','ok'].includes(filter)) {
     // group by cadence
     for (const m of ['w',1,3,6,12]) {
-      const group = tasks.filter(t => t.months === m).sort((a,b) => taskStatus(a).sort - taskStatus(b).sort);
+      const group = tasks.filter(t => effMonths(t) === m).sort((a,b) => taskStatus(a).sort - taskStatus(b).sort);
       if (!group.length) continue;
       html += `<div class="group-h"><h2>${freqLabel(m)}</h2><span class="count">${group.length} task${group.length>1?'s':''}</span></div>`;
       html += group.map(cardHTML).join('');
@@ -1046,8 +1123,17 @@ function renderList() {
     html += group.map(cardHTML).join('');
   }
   if (!html) html = '<div class="empty">Nothing here - you\'re all caught up 🎉</div>';
+  if (domain !== 'all' && !searchQ && tasks.length) html += '<button class="link-btn" id="hideCatBtn">🙈 Hide this entire category</button>';
   $('list').innerHTML = html;
-  document.querySelectorAll('.card').forEach(el => el.onclick = () => openTask(el.dataset.id));
+  document.querySelectorAll('#list .card').forEach(el => el.onclick = () => openTask(el.dataset.id));
+  const hc = $('hideCatBtn');
+  if (hc) hc.onclick = () => {
+    const name = ({home:'Home Maintenance',auto:'Car Maintenance',health:'Health Maintenance',pets:'Pet Maintenance',admin:'Life Admin PM'})[domain] || (dTasks()[0] && dTasks()[0].catName) || 'Category';
+    dTasks().forEach(t => { if (!data.hidden.includes(t.id)) data.hidden.push(t.id); });
+    saveData(data);
+    showLanding();
+    toast(name + ' hidden - restore anytime from Hidden checks');
+  };
 }
 
 function renderAll() { renderSegs(); renderStats(); renderChips(); renderList(); }
@@ -1055,6 +1141,7 @@ function renderAll() { renderSegs(); renderStats(); renderChips(); renderList();
 /* ---------- Landing page ---------- */
 function showList(d, f) {
   domain = d; filter = f || 'all';
+  searchQ = ''; $('searchBox').value = '';
   $('landing').style.display = 'none';
   $('listView').style.display = '';
   renderAll();
@@ -1070,31 +1157,47 @@ function showLanding() {
    overdue 30, not started 0. Fitness scores by weekly progress (count/target).
    A domain's score is the average of its checks; Life Score averages all checks. */
 function taskScore(t) {
-  if (t.months === 'w') return Math.min(1, weekCount(t) / (t.target || 4)) * 100;
-  const k = taskStatus(t).key;
-  return k === 'ok' ? 100 : k === 'soon' ? 70 : k === 'overdue' ? 30 : 0;
+  const m = effMonths(t);
+  if (m === 'w') {
+    const target = t.target || 4;
+    const cur = Math.min(1, weekCount(t) / target);
+    const dayIdx = (parseISO(todayISO()).getDay() + 6) % 7; // 0 = Monday
+    const lw = Math.min(1, lastWeekCount(t) / target);
+    const fade = Math.max(0, (6 - dayIdx) / 7); // last week's grade fades out over the week
+    return Math.max(cur, lw * fade) * 100;
+  }
+  const s = taskStatus(t);
+  if (s.key === 'ok') return 100;
+  if (s.key === 'soon') return 70;
+  if (s.key === 'never') return 0;
+  // overdue: decays from 60 to 0 over one full period late
+  const over = Math.max(0, daysBetween(s.due, parseISO(todayISO())));
+  return Math.max(0, 60 * (1 - Math.min(1, over / (m * 30))));
 }
 function lifeScoreExact(list) {
   if (!list.length) return 0;
-  return list.reduce((s, t) => s + taskScore(t), 0) / list.length;
+  let s = 0, w = 0;
+  for (const t of list) { const tw = taskWeight(t); s += taskScore(t) * tw; w += tw; }
+  return s / w;
 }
 function lifeScore(list) { return Math.round(lifeScoreExact(list)); }
 function scoreColor(sc) { return sc >= 80 ? 'var(--good)' : sc >= 50 ? 'var(--warning)' : 'var(--critical)'; }
 
 function renderLanding() {
   let gOd = 0, gSoon = 0;
-  TASKS.forEach(t => { const k = taskStatus(t).key; if (k === 'overdue') gOd++; else if (k === 'soon') gSoon++; });
+  visibleTasks().forEach(t => { const k = taskStatus(t).key; if (k === 'overdue') gOd++; else if (k === 'soon') gSoon++; });
   const now = new Date();
   const y = String(now.getFullYear());
   const ym = y + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const vts = visibleTasks();
   let doneMonth = 0, doneTasksYear = 0;
-  for (const t of TASKS) {
+  for (const t of vts) {
     const cs = data.completions[t.id] || [];
     if (cs.some(d => d.startsWith(y))) doneTasksYear++;
     for (const d of cs) if (d.startsWith(ym)) doneMonth++;
   }
 
-  const sc = lifeScore(TASKS);
+  const sc = lifeScore(vts);
   const C = 2 * Math.PI * 40;
   const scoreHtml = `<div class="score-card">
     <div class="ring">
@@ -1107,7 +1210,7 @@ function renderLanding() {
     </div>
     <div>
       <div class="score-t">UpKeep Score</div>
-      <div class="score-d">How well-maintained everything is, averaged across all ${TASKS.length} checks. Every completed check raises it. Scoring method in the footnote below.</div>
+      <div class="score-d">How well-maintained everything is, across all ${vts.length} checks - safety-critical checks count extra. Every completed check raises it. Method in the footnote below.</div>
     </div>
   </div>`;
 
@@ -1115,12 +1218,15 @@ function renderLanding() {
     <div class="stat" data-f="overdue"><div class="n ${gOd ? 'crit' : ''}">${gOd}</div><div class="l">Overdue</div></div>
     <div class="stat" data-f="soon"><div class="n ${gSoon ? 'warn' : ''}">${gSoon}</div><div class="l">Due soon</div></div>
     <div class="stat"><div class="n">${doneMonth}</div><div class="l">Done this month</div></div>
-    <div class="stat"><div class="n ok" style="font-size:17px;letter-spacing:-0.02em;line-height:1.5">${doneTasksYear}/${TASKS.length}</div><div class="l">Done in ${y}</div></div>
+    <div class="stat"><div class="n ok" style="font-size:17px;letter-spacing:-0.02em;line-height:1.5">${doneTasksYear}/${vts.length}</div><div class="l">Done in ${y}</div></div>
   </div>`;
 
   const doms = [['all','🗂️','All Checklists'],['home','🏠','Home Maintenance'],['auto','🚗','Car Maintenance'],['health','❤️','Health Maintenance'],['pets','🐾','Pet Maintenance'],['admin','📋','Life Admin PM']];
+  const seenCat = {};
+  for (const t of allTasks()) if (t.catName && !seenCat[t.domain]) { seenCat[t.domain] = 1; doms.push([t.domain, '⭐', t.catName]); }
   const cardsHtml = doms.map(([d, e, l]) => {
-    const ts = TASKS.filter(t => d === 'all' || domainOf(t) === d);
+    const ts = vts.filter(t => d === 'all' || domainOf(t) === d);
+    if (d !== 'all' && ts.length === 0) return ''; // fully hidden category: no card
     let od = 0, soon = 0, never = 0;
     ts.forEach(t => { const k = taskStatus(t).key; if (k === 'overdue') od++; else if (k === 'soon') soon++; else if (k === 'never') never++; });
     const dsc = lifeScore(ts);
@@ -1136,23 +1242,64 @@ function renderLanding() {
     </div>`;
   }).join('');
 
+  /* This Week: the handful of checks that most need attention right now */
+  const urgent = vts
+    .map(t => ({ t, s: taskStatus(t) }))
+    .filter(x => x.s.key === 'overdue' || x.s.key === 'soon')
+    .sort((a, b) => (a.s.sort - b.s.sort) || (taskWeight(b.t) - taskWeight(a.t)))
+    .slice(0, 5);
+  let weekHtml = '';
+  if (urgent.length) {
+    weekHtml = `<div class="group-h" style="margin-top:20px"><h2>🎯 This Week</h2><span class="count">${urgent.length} to knock out</span></div>`
+      + urgent.map(x => cardHTML(x.t)).join('');
+  } else {
+    const starters = vts.filter(t => taskStatus(t).key === 'never')
+      .sort((a, b) => taskWeight(b) - taskWeight(a)).slice(0, 3);
+    if (starters.length) weekHtml = `<div class="group-h" style="margin-top:20px"><h2>🎯 Good place to start</h2></div>` + starters.map(cardHTML).join('');
+  }
+
+  /* Backup nudge */
+  let backupWarn = '';
+  const hasData = Object.keys(data.completions).length > 0;
+  if (hasData) {
+    if (!data.lastBackup) backupWarn = `<div class="backup-warn">⚠️ No backup yet - tap "Backup data" below so your history is safe.</div>`;
+    else {
+      const daysAgo = daysBetween(parseISO(data.lastBackup), parseISO(todayISO()));
+      if (daysAgo > 45) backupWarn = `<div class="backup-warn">⚠️ Last backup was ${daysAgo} days ago - tap "Backup data" below.</div>`;
+    }
+  }
+
+  const hiddenN = (data.hidden || []).length;
   $('landing').innerHTML =
     `<div class="tagline">Preventive maintenance for your whole life - scheduled checklists with step-by-step how-to guides, so small upkeep never becomes big repairs.</div>`
-    + scoreHtml + statsHtml
+    + scoreHtml + statsHtml + backupWarn + weekHtml
     + `<div class="group-h" style="margin-top:20px"><h2>Preventive Maintenance Checklists</h2></div>`
-    + cardsHtml;
-  document.querySelectorAll('.land-card').forEach(el => el.onclick = () => showList(el.dataset.d));
+    + cardsHtml
+    + `<div class="land-card add-card" id="addCheckBtn">＋ Add a custom check</div>`
+    + (hiddenN ? `<button class="link-btn" id="hiddenBtn">Hidden checks (${hiddenN}) - tap to manage</button>` : '');
+  document.querySelectorAll('.land-card[data-d]').forEach(el => el.onclick = () => showList(el.dataset.d));
   document.querySelectorAll('#landing .stat[data-f]').forEach(el => el.onclick = () => showList('all', el.dataset.f));
+  document.querySelectorAll('#landing .card').forEach(el => el.onclick = () => openTask(el.dataset.id));
+  $('addCheckBtn').onclick = () => openCustomForm(null);
+  if (hiddenN) $('hiddenBtn').onclick = openHiddenManager;
+}
+function refreshViews() {
+  renderAll();
+  if ($('landing').style.display !== 'none') renderLanding();
 }
 $('backBtn').onclick = showLanding;
+$('searchBox').oninput = () => { searchQ = $('searchBox').value.trim().toLowerCase(); renderList(); };
 
 /* ============================== TASK SHEET ============================== */
 let openId = null;
 function openTask(id) {
   openId = id;
-  const t = TASKS.find(x => x.id === id);
+  const t = allTasks().find(x => x.id === id);
+  if (!t) return;
+  const isCustom = (data.custom || []).some(c => c.id === id);
+  const em = effMonths(t);
   const s = taskStatus(t);
-  const a = AREAS[t.area];
+  const a = areaInfo(t);
   const hist = (data.completions[id] || []).slice().reverse();
   $('sheet').innerHTML = `
     <div class="grab"></div>
@@ -1160,7 +1307,7 @@ function openTask(id) {
       <div class="emoji">${a.emoji}</div>
       <div style="flex:1;min-width:0">
         <h2>${t.title}</h2>
-        <div class="freq-line">${a.name} · ${freqLabel(t.months)} · ⏱ ${t.time}</div>
+        <div class="freq-line">${a.name} · ${freqLabel(em)} · ⏱ ${t.time}</div>
       </div>
       <button class="close-x" id="closeBtn">✕</button>
     </div>
@@ -1171,13 +1318,23 @@ function openTask(id) {
     ${videoFor(t) ? `<a class="video-btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(videoFor(t))}"><span class="yt">▶</span> Watch how-to videos on YouTube</a>` : ''}
     ${t.tip ? `<div class="tip"><b>💡 Tip:</b> ${t.tip}</div>` : ''}</div>
     <div class="sec"><h3>History</h3><div class="history">${hist.length ? hist.slice(0,8).map((d,i)=>`<div class="h-row"><span>${i===0?'Last done':'Done'}</span><span>${fmtISO(d)}</span></div>`).join('') : '<div class="h-none">No completions recorded yet.</div>'}</div></div>
+    <div class="sec"><h3>Settings for this check</h3>
+      <div class="ctrl-row"><span>Repeats</span>
+        <select id="freqSel" class="mini-select">
+          <option value="w">Weekly</option><option value="1">Monthly</option><option value="3">Quarterly</option>
+          <option value="6">Semi-Annual</option><option value="12">Annual</option>
+        </select>
+      </div>
+      ${isCustom ? '<button class="btn ghost" id="editBtn">✏️ Edit this check</button><button class="btn danger-ghost" id="delBtn">Delete this check</button>'
+                 : '<button class="btn ghost" id="hideBtn">🙈 Hide this check (removed from lists & score)</button>'}
+    </div>
     <div class="actions">
-      <button class="btn primary" id="doneBtn">${t.months === 'w' ? '＋ Log workout today' : '✓ Mark done today'}</button>
+      <button class="btn primary" id="doneBtn">${em === 'w' ? '＋ Log workout today' : '✓ Mark done today'}</button>
       <div class="date-row" id="dateRow">
         <input type="date" id="doneDate" max="${todayISO()}">
         <button class="btn primary" id="doneDateBtn">Save</button>
       </div>
-      <button class="btn ghost" id="otherDateBtn">${t.months === 'w' ? 'Log for a different day…' : 'Done on a different date…'}</button>
+      <button class="btn ghost" id="otherDateBtn">${em === 'w' ? 'Log for a different day…' : 'Done on a different date…'}</button>
       ${hist.length ? '<button class="btn danger-ghost" id="undoBtn">Undo last completion</button>' : ''}
     </div>`;
   $('closeBtn').onclick = closeTask;
@@ -1185,35 +1342,257 @@ function openTask(id) {
   $('otherDateBtn').onclick = () => { $('dateRow').classList.add('open'); $('otherDateBtn').style.display = 'none'; $('doneDate').value = todayISO(); };
   $('doneDateBtn').onclick = () => { const v = $('doneDate').value; if (v) markDone(id, v); };
   const ub = $('undoBtn'); if (ub) ub.onclick = () => undoLast(id);
+  $('freqSel').value = String(em);
+  $('freqSel').onchange = () => {
+    const v = $('freqSel').value;
+    const nm = v === 'w' ? 'w' : Number(v);
+    if (nm === t.months) delete data.overrides[id];
+    else data.overrides[id] = { months: nm };
+    saveData(data);
+    refreshViews();
+    toast('Now repeats ' + freqLabel(nm).toLowerCase());
+    openTask(id);
+  };
+  const hb = $('hideBtn');
+  if (hb) hb.onclick = () => {
+    data.hidden.push(id);
+    saveData(data);
+    closeTask();
+    refreshViews();
+    toast('Hidden - restore it anytime from the home page');
+  };
+  const eb = $('editBtn');
+  if (eb) eb.onclick = () => openCustomForm(id);
+  const db = $('delBtn');
+  if (db) db.onclick = () => {
+    data.custom = data.custom.filter(c => c.id !== id);
+    delete data.completions[id];
+    delete data.overrides[id];
+    saveData(data);
+    closeTask();
+    refreshViews();
+    toast('Check deleted');
+  };
   $('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   $('sheet').scrollTop = 0;
 }
 function closeTask() { $('overlay').classList.remove('open'); document.body.style.overflow = ''; openId = null; }
+
+/* ---------- Custom checks: add / edit ---------- */
+function openCustomForm(editId) {
+  const existing = editId ? (data.custom || []).find(c => c.id === editId) : null;
+  const p = existing || { title: '', domain: 'home', months: 6, time: '30 min', why: '', supplies: [], steps: [], video: '' };
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">🛠️</div>
+      <div style="flex:1;min-width:0"><h2>${existing ? 'Edit check' : 'New custom check'}</h2><div class="freq-line">Your own preventive maintenance item</div></div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    <div class="sec"><h3>Name of the check</h3><input class="p-input" id="cTitle" value="${esc(p.title)}" placeholder="e.g. Clean espresso machine"></div>
+    <div class="sec"><h3>Category</h3>
+      <select class="p-input" id="cDomain">
+        <option value="home">🏠 Home Maintenance</option><option value="auto">🚗 Car Maintenance</option>
+        <option value="health">❤️ Health Maintenance</option><option value="pets">🐾 Pet Maintenance</option>
+        <option value="admin">📋 Life Admin PM</option>
+        ${[...new Map((data.custom || []).filter(c => c.catName).map(c => [c.domain, c.catName])).entries()]
+          .map(([d, n]) => `<option value="${esc(d)}">⭐ ${esc(n)}</option>`).join('')}
+        <option value="__new">＋ New category…</option>
+      </select>
+      <input class="p-input" id="cCatName" placeholder="Name the new category (e.g. Garden, Boat)" style="margin-top:9px;display:none"></div>
+    <div class="sec"><h3>Repeats</h3>
+      <select class="p-input" id="cMonths">
+        <option value="w">Weekly</option><option value="1">Monthly</option><option value="3">Quarterly</option>
+        <option value="6">Semi-Annual</option><option value="12">Annual</option>
+      </select></div>
+    <div class="sec"><h3>Time needed</h3><input class="p-input" id="cTime" value="${esc(p.time)}" placeholder="e.g. 20 min"></div>
+    <div class="sec"><h3>Why it matters (optional)</h3><textarea class="p-textarea" id="cWhy" placeholder="One or two sentences">${esc(p.why)}</textarea></div>
+    <div class="sec"><h3>Supplies - one per line (optional)</h3><textarea class="p-textarea" id="cSupplies" placeholder="Descaling solution&#10;Microfiber cloth">${esc((p.supplies || []).join('\n'))}</textarea></div>
+    <div class="sec"><h3>Steps - one per line (optional)</h3><textarea class="p-textarea" id="cSteps" placeholder="Empty the tank&#10;Run descaling cycle&#10;Rinse twice">${esc((p.steps || []).join('\n'))}</textarea></div>
+    <div class="sec"><h3>YouTube search for how-to videos (optional)</h3><input class="p-input" id="cVideo" value="${esc(p.video || '')}" placeholder="e.g. how to descale espresso machine"></div>
+    <div class="actions"><button class="btn primary" id="cSave">${existing ? 'Save changes' : 'Add check'}</button></div>`;
+  $('cDomain').value = p.domain;
+  $('cMonths').value = String(p.months);
+  $('cDomain').onchange = () => { $('cCatName').style.display = $('cDomain').value === '__new' ? '' : 'none'; };
+  $('closeBtn').onclick = closeTask;
+  $('cSave').onclick = () => {
+    const title = $('cTitle').value.trim();
+    if (!title) { toast('Give the check a name'); return; }
+    let domain = $('cDomain').value;
+    let catName;
+    if (domain === '__new') {
+      catName = $('cCatName').value.trim();
+      if (!catName) { toast('Name the new category'); return; }
+      domain = 'c_' + catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    } else if (domain.indexOf('c_') === 0) {
+      catName = ((data.custom || []).find(c => c.domain === domain) || {}).catName || domain.slice(2);
+    }
+    const mv = $('cMonths').value;
+    const task = {
+      id: existing ? existing.id : 'c' + Date.now(),
+      title, domain, catName,
+      area: domain === 'home' ? 'general' : (['auto','health','pets','admin'].indexOf(domain) >= 0 ? domain : domain),
+      months: mv === 'w' ? 'w' : Number(mv),
+      target: mv === 'w' ? 4 : undefined,
+      time: $('cTime').value.trim() || '30 min',
+      why: $('cWhy').value.trim() || 'A custom preventive maintenance check you added.',
+      supplies: $('cSupplies').value.split('\n').map(s => s.trim()).filter(Boolean),
+      steps: $('cSteps').value.split('\n').map(s => s.trim()).filter(Boolean),
+      video: $('cVideo').value.trim() || undefined,
+    };
+    if (task.supplies.length === 0) task.supplies = ['Nothing special - just your time'];
+    if (task.steps.length === 0) task.steps = ['Do the check, then mark it done here.'];
+    if (existing) data.custom = data.custom.map(c => c.id === existing.id ? task : c);
+    else data.custom.push(task);
+    delete data.overrides[task.id];
+    saveData(data);
+    closeTask();
+    refreshViews();
+    toast(existing ? '✓ Check updated' : '✓ Custom check added');
+  };
+  $('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  $('sheet').scrollTop = 0;
+}
+
+/* ---------- Hidden checks manager ---------- */
+function openHiddenManager() {
+  const hidden = allTasks().filter(isHidden);
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">🙈</div>
+      <div style="flex:1;min-width:0"><h2>Hidden checks</h2><div class="freq-line">Not shown in lists and not counted in your score</div></div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    <div class="sec">${hidden.length > 1 ? '<button class="btn ghost" id="restoreAllBtn" style="margin-bottom:9px">Restore all</button>' : ''}${hidden.map(t => `
+      <div class="ctrl-row"><span style="flex:1;min-width:0;font-size:13.5px">${areaInfo(t).emoji} ${t.title}</span>
+      <button class="mini-select" style="cursor:pointer" data-restore="${t.id}">Restore</button></div>`).join('') || '<div class="why">Nothing hidden.</div>'}
+    </div>`;
+  $('closeBtn').onclick = closeTask;
+  const ra = $('restoreAllBtn');
+  if (ra) ra.onclick = () => { data.hidden = []; saveData(data); refreshViews(); closeTask(); toast('All checks restored'); };
+  document.querySelectorAll('[data-restore]').forEach(el => el.onclick = () => {
+    data.hidden = data.hidden.filter(x => x !== el.dataset.restore);
+    saveData(data);
+    refreshViews();
+    toast('Check restored');
+    if (data.hidden.length) openHiddenManager(); else closeTask();
+  });
+  $('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+/* ---------- History & trends ---------- */
+function openHistory() {
+  const vts = visibleTasks();
+  const today = parseISO(todayISO());
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    months.push({ ym: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), lbl: d.toLocaleDateString(undefined, { month: 'narrow' }), n: 0 });
+  }
+  let total = 0;
+  for (const t of allTasks()) for (const d of (data.completions[t.id] || [])) {
+    total++;
+    const m = months.find(x => d.startsWith(x.ym));
+    if (m) m.n++;
+  }
+  const max = Math.max(1, ...months.map(m => m.n));
+  const fit = allTasks().find(t => t.id === 'health-fitness');
+  let streak = 0;
+  if (fit) {
+    const target = fit.target || 4;
+    const ws = new Date(today); ws.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    let cursor = new Date(ws);
+    if (weekCount(fit) >= target) streak++;
+    for (let k = 0; k < 104; k++) {
+      const start = new Date(cursor); start.setDate(cursor.getDate() - 7);
+      const n = (data.completions['health-fitness'] || []).filter(d => { const dt = parseISO(d); return dt >= start && dt < cursor; }).length;
+      if (n >= target) { streak++; cursor = start; } else break;
+    }
+  }
+  const started = vts.filter(t => taskStatus(t).key !== 'never');
+  const onTrack = started.filter(t => taskStatus(t).key === 'ok').length;
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">📈</div>
+      <div style="flex:1;min-width:0"><h2>History &amp; trends</h2><div class="freq-line">Your maintenance record</div></div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    <div class="sec"><h3>Completions - last 12 months</h3>
+      <div class="hist-bars">${months.map(m => `<div class="hist-col"><div class="hist-bar" style="height:${Math.round(m.n / max * 100)}%"></div><div class="hist-lbl">${m.lbl}</div></div>`).join('')}</div>
+    </div>
+    <div class="sec"><h3>Stats</h3><div class="history">
+      <div class="h-row"><span>Total completions logged</span><span><b>${total}</b></span></div>
+      <div class="h-row"><span>Checks started</span><span><b>${started.length}/${vts.length}</b></span></div>
+      <div class="h-row"><span>Started checks currently on track</span><span><b>${started.length ? Math.round(onTrack / started.length * 100) : 0}%</b></span></div>
+      <div class="h-row"><span>Fitness streak (weeks at goal)</span><span><b>${streak} 🔥</b></span></div>
+      <div class="h-row"><span>UpKeep Score</span><span><b>${lifeScore(vts)}/100</b></span></div>
+    </div></div>`;
+  $('closeBtn').onclick = closeTask;
+  $('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  $('sheet').scrollTop = 0;
+}
+
+/* ---------- Calendar (.ics) export ---------- */
+function icsEscape(s) { return String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,'); }
+function buildICS() {
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//UpKeep Gauge//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:UpKeep Gauge'];
+  const today = parseISO(todayISO());
+  let stagger = 0;
+  for (const t of visibleTasks()) {
+    const em = effMonths(t);
+    if (em === 'w') {
+      const mon = new Date(today); mon.setDate(today.getDate() + ((8 - today.getDay()) % 7 || 7));
+      lines.push('BEGIN:VEVENT', 'UID:' + t.id + '@upkeep-gauge',
+        'DTSTART;VALUE=DATE:' + mon.toISOString().slice(0, 10).replace(/-/g, ''),
+        'RRULE:FREQ=WEEKLY',
+        'SUMMARY:' + icsEscape('UpKeep: plan this week\'s ' + (t.target || 4) + ' workouts'),
+        'DESCRIPTION:' + icsEscape('Log each workout in UpKeep Gauge.'), 'END:VEVENT');
+      continue;
+    }
+    const s = taskStatus(t);
+    let due;
+    if (s.due) due = s.due;
+    else { stagger++; due = new Date(today); due.setDate(today.getDate() + 1 + (stagger % 14)); } // spread never-done checks over 2 weeks
+    if (due < today) due = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1); // overdue -> tomorrow
+    lines.push('BEGIN:VEVENT', 'UID:' + t.id + '@upkeep-gauge',
+      'DTSTART;VALUE=DATE:' + due.getFullYear() + String(due.getMonth() + 1).padStart(2, '0') + String(due.getDate()).padStart(2, '0'),
+      'SUMMARY:' + icsEscape('UpKeep: ' + t.title),
+      'DESCRIPTION:' + icsEscape('Open UpKeep Gauge for the step-by-step guide and supplies list. Repeats ' + freqLabel(em).toLowerCase() + '.'),
+      'END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
 $('overlay').addEventListener('click', e => { if (e.target === $('overlay')) closeTask(); });
 
 function markDone(id, dateISO) {
-  const before = lifeScoreExact(TASKS);
+  const before = lifeScoreExact(visibleTasks());
   if (!data.completions[id]) data.completions[id] = [];
   data.completions[id].push(dateISO);
   data.completions[id].sort();
   saveData(data);
-  const t = TASKS.find(x => x.id === id);
+  const t = allTasks().find(x => x.id === id);
   closeTask();
-  renderAll();
-  const delta = lifeScoreExact(TASKS) - before;
+  refreshViews();
+  const delta = lifeScoreExact(visibleTasks()) - before;
   const dTxt = delta > 0.04 ? ' · Score +' + delta.toFixed(1) : '';
-  if (t.months === 'w') {
+  if (effMonths(t) === 'w') {
     const c = weekCount(t), target = t.target || 4;
     toast((c >= target ? `🎉 ${c}/${target} - week complete!` : `✓ Logged - ${c}/${target} this week`) + dTxt);
   } else {
-    const next = addMonths(parseISO(dateISO), t.months);
-    toast('✓ Saved - next due ' + fmt(next) + dTxt);
+    const s = taskStatus(t);
+    toast('✓ Saved - next due ' + (s.due ? fmt(s.due) : fmt(addMonths(parseISO(dateISO), effMonths(t)))) + dTxt);
   }
 }
 function undoLast(id) {
   const c = data.completions[id];
-  if (c && c.length) { c.pop(); saveData(data); openTask(id); renderAll(); toast('Last completion removed'); }
+  if (c && c.length) { c.pop(); saveData(data); openTask(id); refreshViews(); toast('Last completion removed'); }
 }
 
 /* ============================== BACKUP ============================== */
@@ -1224,8 +1603,21 @@ $('exportBtn').onclick = () => {
   a.download = 'home-maintenance-backup-' + todayISO() + '.json';
   a.click();
   URL.revokeObjectURL(a.href);
+  data.lastBackup = todayISO();
+  saveData(data);
+  if ($('landing').style.display !== 'none') renderLanding();
   toast('Backup downloaded');
 };
+$('icsBtn').onclick = () => {
+  const blob = new Blob([buildICS()], { type: 'text/calendar' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'upkeep-schedule.ics';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Calendar file downloaded - open it to add events');
+};
+$('histBtn').onclick = openHistory;
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = e => {
   const f = e.target.files[0];
@@ -1238,10 +1630,12 @@ $('importFile').onchange = e => {
       if (!d) throw new Error('bad file');
       data = d;
       if (!data.profile) data.profile = { name: 'Sid', location: '', age: '' };
+      if (!data.custom) data.custom = [];
+      if (!data.hidden) data.hidden = [];
+      if (!data.overrides) data.overrides = {};
       saveData(data);
-      renderAll();
       renderProfile();
-      if ($('landing').style.display !== 'none') renderLanding();
+      refreshViews();
       toast('✓ Data restored');
     } catch (err) { toast('Could not read that backup file'); }
   };
@@ -1268,10 +1662,9 @@ function renderProfile() {
   const extra = [p.location, p.age ? 'age ' + p.age : null].filter(Boolean).join(' · ');
   $('profileSub').textContent = extra ? ' (' + extra + ')' : '';
   $('footnote').innerHTML =
-    '<b>UpKeep Score method:</b> every check earns points by how on-schedule it is - on track = 100, due soon = 70, overdue = 30, not started = 0. '
-    + 'Fitness earns points for weekly progress (workouts logged / 4). '
-    + 'A category\'s score is the average of its checks, and the overall UpKeep Score is the average across all ' + TASKS.length + ' checks. '
-    + 'Complete checks on time and the score climbs toward 100.'
+    '<b>UpKeep Score:</b> on track = 100, due soon = 70, overdue fades 60 to 0, not started = 0. '
+    + 'Safety checks count 3x, high-impact 2x. Fitness scores by workouts logged each week. '
+    + 'Your score is the weighted average of all active checks.'
     + '<br><br>© ' + new Date().getFullYear() + ' ' + esc(p.name || 'Sid') + '. All rights reserved.';
 }
 function openProfile() {
@@ -1337,6 +1730,11 @@ $('logoImg').src = 'data:image/png;base64,' + LOGO_B64;
 })();
 
 renderLanding();
+
+/* Offline support: register the service worker when hosted */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').catch(function () {});
+}
 </script>
 </body>
 </html>
