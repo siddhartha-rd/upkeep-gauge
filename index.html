@@ -1520,7 +1520,7 @@ function saveData(d) {
 }
 let data = loadData();
 if (!data.completions) data.completions = {};
-if (!data.profile) data.profile = { name: 'Sid', location: '', age: '' };
+if (!data.profile) data.profile = { name: '', location: '', age: '' };
 if (!data.profile.homeType) data.profile.homeType = 'townhome';
 if (!data.profile.carType) data.profile.carType = 'gas';
 if (data.profile.gender == null) data.profile.gender = '';
@@ -2479,7 +2479,7 @@ $('importFile').onchange = e => {
       const d = obj.data && obj.data.completions ? obj.data : (obj.completions ? obj : null);
       if (!d) throw new Error('bad file');
       data = d;
-      if (!data.profile) data.profile = { name: 'Sid', location: '', age: '' };
+      if (!data.profile) data.profile = { name: '', location: '', age: '' };
       if (!data.profile.homeType) data.profile.homeType = 'townhome';
       if (!data.profile.carType) data.profile.carType = 'gas';
       if (data.profile.gender == null) data.profile.gender = '';
@@ -2511,21 +2511,14 @@ $('todayLabel').textContent = new Date().toLocaleDateString(undefined, { weekday
 /* ---------- Profile (tap the name to edit) ---------- */
 function esc(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function renderProfile() {
-  const p = data.profile || { name: 'Sid' };
-  $('profileBtn').textContent = (p.name || 'You') + ' ✎';
+  const p = data.profile || { name: '' };
+  $('profileBtn').textContent = (p.name || 'Set up your profile') + ' ✎';
   const extra = [p.location, p.age ? 'age ' + p.age : null].filter(Boolean).join(' · ');
   $('profileSub').textContent = extra ? ' (' + extra + ')' : '';
-  $('footnote').innerHTML = '© ' + new Date().getFullYear() + ' ' + esc(p.name || 'Sid') + '. All rights reserved.';
+  $('footnote').innerHTML = '© ' + new Date().getFullYear() + ' ' + esc(p.name || 'UpKeep Gauge') + '. All rights reserved.';
 }
-function openProfile() {
-  const p = data.profile || {};
-  $('sheet').innerHTML = `
-    <div class="grab"></div>
-    <div class="sheet-head">
-      <div class="emoji">👤</div>
-      <div style="flex:1;min-width:0"><h2>Your profile</h2><div class="freq-line">Shown on the home page</div></div>
-      <button class="close-x" id="closeBtn">✕</button>
-    </div>
+function profileFieldsHTML(p) {
+  return `
     <div class="sec"><h3>Name</h3><input class="p-input" id="pName" value="${esc(p.name)}" placeholder="Your name"></div>
     <div class="sec"><h3>Location</h3><input class="p-input" id="pLoc" value="${esc(p.location)}" placeholder="City, State"></div>
     <div class="sec"><h3>Age</h3><input class="p-input" id="pAge" type="number" min="1" max="120" inputmode="numeric" value="${esc(p.age)}" placeholder="Age in years"></div>
@@ -2555,24 +2548,43 @@ function openProfile() {
         ${[['home','🏠 Home Maintenance'],['auto','🚗 Car Maintenance'],['health','❤️ Health Maintenance'],['pets','🐾 Pet Maintenance'],['admin','📋 Life Admin PM']]
           .map(([d, l]) => `<div class="supply"><input type="checkbox" id="dm_${d}" ${(p.disabledDomains || []).includes(d) ? '' : 'checked'}><label for="dm_${d}" style="text-decoration:none;color:var(--ink)">${l}</label></div>`).join('')}
       </div>
-      <div class="tagline" style="margin-top:6px">Unchecked categories disappear from the app and never count against your score.</div></div>
-    <div class="actions"><button class="btn primary" id="pSave">Save profile</button></div>`;
+      <div class="tagline" style="margin-top:6px">Unchecked categories disappear from the app and never count against your score.</div></div>`;
+}
+function initProfileFields(p) {
   $('pGender').value = p.gender || '';
   $('pHome').value = p.homeType || 'townhome';
   $('pCar').value = p.carType || 'gas';
+}
+function readProfileForm() {
+  const disabled = [];
+  for (const d of ['home','auto','health','pets','admin']) if (!$('dm_' + d).checked) disabled.push(d);
+  return {
+    name: $('pName').value.trim(),
+    location: $('pLoc').value.trim(),
+    age: $('pAge').value.trim(),
+    gender: $('pGender').value,
+    homeType: $('pHome').value,
+    carType: $('pCar').value,
+    disabledDomains: disabled,
+  };
+}
+function openProfile() {
+  const p = data.profile || {};
+  $('sheet').innerHTML = `
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <div class="emoji">👤</div>
+      <div style="flex:1;min-width:0"><h2>Your profile</h2><div class="freq-line">Shown on the home page</div></div>
+      <button class="close-x" id="closeBtn">✕</button>
+    </div>
+    ${profileFieldsHTML(p)}
+    <div class="actions"><button class="btn primary" id="pSave">Save profile</button></div>`;
+  initProfileFields(p);
   $('closeBtn').onclick = closeTask;
   $('pSave').onclick = () => {
-    const disabled = [];
-    for (const d of ['home','auto','health','pets','admin']) if (!$('dm_' + d).checked) disabled.push(d);
-    data.profile = {
-      name: $('pName').value.trim() || 'You',
-      location: $('pLoc').value.trim(),
-      age: $('pAge').value.trim(),
-      gender: $('pGender').value,
-      homeType: $('pHome').value,
-      carType: $('pCar').value,
-      disabledDomains: disabled,
-    };
+    const prof = readProfileForm();
+    prof.name = prof.name || 'You';
+    data.profile = prof;
     saveData(data);
     renderProfile();
     closeTask();
@@ -2585,6 +2597,37 @@ function openProfile() {
 }
 $('profileBtn').onclick = openProfile;
 renderProfile();
+
+/* ---------- First-run onboarding ---------- */
+function needsOnboarding() { return !(data.profile && data.profile.name); }
+function showOnboarding() {
+  hideViews();
+  document.querySelector('.tabbar').style.display = 'none';
+  $('landing').style.display = '';
+  $('landing').innerHTML = `
+    <div style="text-align:center;padding-top:26px">
+      <img src="${$('logoImg').src}" alt="UpKeep Gauge" style="width:96px;height:96px;border-radius:24px">
+      <div class="greet" style="margin-top:14px">Welcome to UpKeep Gauge 👋</div>
+      <div class="tagline" style="max-width:420px;margin:8px auto 0">Preventive maintenance for your whole life - home, car, health and more, with step-by-step guides. Tell us about yourself and we'll build your personal checklists.</div>
+    </div>
+    ${profileFieldsHTML(data.profile || {})}
+    <div class="actions" style="position:static;margin-top:16px">
+      <button class="btn primary" id="obStart">🚀 Build my checklists</button>
+    </div>
+    <div class="tagline" style="text-align:center">Everything stays on your device - no account, no cloud, no tracking. You can change all of this later from the Profile tab.</div>`;
+  initProfileFields(data.profile || {});
+  $('obStart').onclick = () => {
+    const prof = readProfileForm();
+    if (!prof.name) { toast('What should we call you?'); $('pName').focus(); return; }
+    data.profile = prof;
+    saveData(data);
+    document.querySelector('.tabbar').style.display = '';
+    renderProfile();
+    showLanding();
+    toast('Welcome, ' + prof.name + ' - your checklists are ready 🎉');
+  };
+  window.scrollTo(0, 0);
+}
 
 /* Day / night toggle: follows the phone's setting until you tap the button */
 const THEME_KEY = 'ukg-theme';
@@ -2616,7 +2659,8 @@ $('logoImg').src = 'data:image/png;base64,' + LOGO_B64;
   document.head.appendChild(l);
 })();
 
-renderLanding();
+if (needsOnboarding()) showOnboarding();
+else renderLanding();
 updateNotifBadge();
 
 /* Offline support: register the service worker when hosted */
