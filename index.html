@@ -82,6 +82,32 @@
   .tab .ti { font-size: 22px; line-height: 1; filter: grayscale(1) opacity(.55); transition: filter .15s; }
   .tab.sel { color: var(--ink); }
   .tab.sel .ti { filter: none; }
+  .tab .ti { position: relative; }
+  .tab-badge {
+    position: absolute; top: -4px; right: -10px; min-width: 16px; height: 16px;
+    background: var(--critical); color: #fff; font-size: 10px; font-weight: 700;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    padding: 0 4px; filter: none !important; line-height: 1;
+  }
+  .share-pill {
+    margin-top: 9px; background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    font-family: inherit; font-size: 12.5px; font-weight: 700; padding: 8px 14px; cursor: pointer;
+  }
+  .share-pill:active { filter: brightness(.9); }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  #landing > * { animation: rise .38s ease both; }
+  #landing > *:nth-child(2) { animation-delay: .04s; }
+  #landing > *:nth-child(3) { animation-delay: .08s; }
+  #landing > *:nth-child(4) { animation-delay: .12s; }
+  #landing > *:nth-child(5) { animation-delay: .16s; }
+  .notif-card {
+    display: flex; align-items: center; gap: 12px; background: var(--surface);
+    border: 1px solid var(--hairline); border-radius: 15px; padding: 13px 14px; margin-bottom: 9px;
+    box-shadow: var(--shadow); cursor: pointer;
+  }
+  .notif-card .n-emoji { flex: none; font-size: 22px; }
+  .notif-card .n-t { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .notif-card .n-s { font-size: 12px; color: var(--ink-2); margin-top: 2px; }
   .wrap { max-width: 680px; margin: 0 auto; padding: 0 16px; }
 
   header.app {
@@ -365,6 +391,10 @@
     <div class="chips" id="rChips"></div>
     <div id="rList"></div>
   </div>
+  <div id="notifView" style="display:none">
+    <div class="group-h" style="margin-top:16px"><h2>🔔 Notifications</h2></div>
+    <div id="notifList"></div>
+  </div>
   <footer class="app">
     <div class="frow">
       <button id="icsBtn">📅 Export to Calendar</button>
@@ -384,6 +414,7 @@
   <button class="tab sel" data-tab="home"><span class="ti">🏠</span><span>Home</span></button>
   <button class="tab" data-tab="pm"><span class="ti">✅</span><span>PM</span></button>
   <button class="tab" data-tab="repair"><span class="ti">🔧</span><span>Repair</span></button>
+  <button class="tab" data-tab="notif"><span class="ti">🔔<span class="tab-badge" id="notifBadge" style="display:none"></span></span><span>Alerts</span></button>
   <button class="tab" data-tab="profile"><span class="ti">👤</span><span>Profile</span></button>
 </nav>
 
@@ -1454,7 +1485,153 @@ function renderAll() { renderSegs(); renderStats(); renderChips(); renderList();
 
 /* ---------- Landing page ---------- */
 function setTab(t) { document.querySelectorAll('.tabbar .tab').forEach(el => el.classList.toggle('sel', el.dataset.tab === t)); }
-function hideViews() { $('landing').style.display = 'none'; $('listView').style.display = 'none'; $('repairView').style.display = 'none'; }
+function hideViews() { $('landing').style.display = 'none'; $('listView').style.display = 'none'; $('repairView').style.display = 'none'; $('notifView').style.display = 'none'; }
+
+/* ---------- Notifications ---------- */
+function notifItems() {
+  const items = { overdue: [], soon: [], other: [] };
+  for (const t of visibleTasks()) {
+    const s = taskStatus(t);
+    if (s.key === 'overdue') items.overdue.push({ t, s });
+    else if (s.key === 'soon' && effMonths(t) !== 'w') items.soon.push({ t, s });
+  }
+  const fit = visibleTasks().find(t => t.id === 'health-fitness');
+  if (fit) {
+    const c = weekCount(fit), tg = fit.target || 4;
+    if (c < tg) items.other.push({ kind: 'fitness', id: fit.id, emoji: '💪', title: `${tg - c} workout${tg - c > 1 ? 's' : ''} to go this week`, sub: `You're at ${c}/${tg} - the week resets Monday` });
+  }
+  if (Object.keys(data.completions).length > 0) {
+    if (!data.lastBackup) items.other.push({ kind: 'backup', emoji: '💾', title: 'No backup yet', sub: 'Your history lives only on this device - tap to back up now' });
+    else {
+      const d = daysBetween(parseISO(data.lastBackup), parseISO(todayISO()));
+      if (d > 45) items.other.push({ kind: 'backup', emoji: '💾', title: `Last backup was ${d} days ago`, sub: 'Tap to back up now' });
+    }
+  }
+  return items;
+}
+function updateNotifBadge() {
+  const n = notifItems();
+  const count = n.overdue.length + n.other.filter(x => x.kind === 'backup').length;
+  const b = $('notifBadge');
+  if (count > 0) { b.textContent = count > 9 ? '9+' : count; b.style.display = 'flex'; }
+  else b.style.display = 'none';
+}
+function showNotif() {
+  hideViews();
+  $('notifView').style.display = '';
+  setTab('notif');
+  renderNotif();
+  window.scrollTo(0, 0);
+}
+function renderNotif() {
+  const n = notifItems();
+  let html = '';
+  if (n.overdue.length) {
+    html += `<div class="group-h"><h2>⚠️ Needs attention</h2><span class="count">${n.overdue.length}</span></div>`;
+    html += n.overdue.map(x => `<div class="notif-card" data-task="${x.t.id}"><span class="n-emoji">${areaInfo(x.t).emoji}</span><div style="flex:1;min-width:0"><div class="n-t">${x.t.title}</div><div class="n-s">${x.s.detail}</div></div><span class="badge overdue">${x.s.label}</span></div>`).join('');
+  }
+  if (n.soon.length) {
+    html += `<div class="group-h" style="margin-top:18px"><h2>🔜 Coming up</h2><span class="count">${n.soon.length}</span></div>`;
+    html += n.soon.map(x => `<div class="notif-card" data-task="${x.t.id}"><span class="n-emoji">${areaInfo(x.t).emoji}</span><div style="flex:1;min-width:0"><div class="n-t">${x.t.title}</div><div class="n-s">${x.s.detail}</div></div><span class="badge soon">${x.s.label}</span></div>`).join('');
+  }
+  if (n.other.length) {
+    html += `<div class="group-h" style="margin-top:18px"><h2>📌 Housekeeping</h2></div>`;
+    html += n.other.map(x => `<div class="notif-card" data-kind="${x.kind}" ${x.id ? `data-task="${x.id}"` : ''}><span class="n-emoji">${x.emoji}</span><div style="flex:1;min-width:0"><div class="n-t">${x.title}</div><div class="n-s">${x.sub}</div></div><div class="land-arrow">›</div></div>`).join('');
+  }
+  if (!html) html = '<div class="empty">All clear - nothing needs your attention 🎉</div>';
+  $('notifList').innerHTML = html;
+  document.querySelectorAll('#notifList .notif-card').forEach(el => el.onclick = () => {
+    if (el.dataset.kind === 'backup') { $('exportBtn').click(); renderNotif(); updateNotifBadge(); }
+    else if (el.dataset.task) openTask(el.dataset.task);
+  });
+}
+
+/* ---------- Share score card ---------- */
+function fitnessStreak() {
+  const fit = allTasks().find(t => t.id === 'health-fitness');
+  if (!fit) return 0;
+  const target = fit.target || 4;
+  const today = parseISO(todayISO());
+  const ws = new Date(today); ws.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  let streak = 0, cursor = new Date(ws);
+  if (weekCount(fit) >= target) streak++;
+  for (let k = 0; k < 104; k++) {
+    const start = new Date(cursor); start.setDate(cursor.getDate() - 7);
+    const nn = (data.completions['health-fitness'] || []).filter(d => { const dt = parseISO(d); return dt >= start && dt < cursor; }).length;
+    if (nn >= target) { streak++; cursor = start; } else break;
+  }
+  return streak;
+}
+function shareScore() {
+  const vts = visibleTasks();
+  const sc = lifeScore(vts);
+  const hex = sc >= 80 ? '#0ca30c' : sc >= 50 ? '#fab219' : '#d03b3b';
+  const y = String(new Date().getFullYear());
+  let doneYear = 0;
+  for (const t of vts) if ((data.completions[t.id] || []).some(d => d.startsWith(y))) doneYear++;
+  const streak = fitnessStreak();
+  const name = (data.profile || {}).name || 'My';
+
+  const cv = document.createElement('canvas');
+  cv.width = 1080; cv.height = 1080;
+  const g = cv.getContext('2d');
+  // background
+  const bg = g.createLinearGradient(0, 0, 0, 1080);
+  bg.addColorStop(0, '#17171b'); bg.addColorStop(1, '#26262e');
+  g.fillStyle = bg; g.fillRect(0, 0, 1080, 1080);
+  // logo as a rounded app-icon tile
+  try {
+    g.save();
+    g.beginPath();
+    g.roundRect(470, 70, 140, 140, 32);
+    g.clip();
+    g.drawImage($('logoImg'), 470, 70, 140, 140);
+    g.restore();
+  } catch (e) {}
+  g.textAlign = 'center';
+  g.fillStyle = '#ffffff';
+  g.font = '700 58px system-ui, sans-serif';
+  g.fillText('UpKeep Gauge', 540, 290);
+  g.fillStyle = '#9a9aa5';
+  g.font = '600 32px system-ui, sans-serif';
+  g.fillText(name + "'s Life Preventive Maintenance", 540, 340);
+  // ring
+  const cx = 540, cy = 610, r = 190;
+  g.lineWidth = 34; g.lineCap = 'round';
+  g.strokeStyle = 'rgba(255,255,255,0.10)';
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+  g.strokeStyle = hex;
+  g.beginPath(); g.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.max(sc, 2) / 100) * Math.PI * 2); g.stroke();
+  g.fillStyle = hex;
+  g.font = '700 150px system-ui, sans-serif';
+  g.fillText(String(sc), 540, 650);
+  g.fillStyle = '#9a9aa5';
+  g.font = '600 36px system-ui, sans-serif';
+  g.fillText('UpKeep Score / 100', 540, 710);
+  // stats line
+  g.fillStyle = '#ffffff';
+  g.font = '600 36px system-ui, sans-serif';
+  const statsLine = `✅ ${doneYear}/${vts.length} checks in ${y}` + (streak ? `   ·   🔥 ${streak}-week fitness streak` : '');
+  g.fillText(statsLine, 540, 900);
+  g.fillStyle = '#9a9aa5';
+  g.font = '500 28px system-ui, sans-serif';
+  g.fillText('Home · Car · Health · Life - maintained on time', 540, 960);
+
+  cv.toBlob(async (blob) => {
+    if (!blob) { toast('Could not build the card'); return; }
+    const file = new File([blob], 'upkeep-score.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'My UpKeep Score', text: `My UpKeep Score is ${sc}/100 💪` }); } catch (e) { /* user cancelled */ }
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'upkeep-score.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast('Score card saved - share it anywhere');
+    }
+  }, 'image/png');
+}
 function showList(d, f) {
   domain = d; filter = f || 'all';
   searchQ = ''; $('searchBox').value = '';
@@ -1527,6 +1704,7 @@ document.querySelectorAll('.tabbar .tab').forEach(el => el.onclick = () => {
   if (t === 'home') showLanding();
   else if (t === 'pm') showList('all');
   else if (t === 'repair') showRepair();
+  else if (t === 'notif') showNotif();
   else openProfile();
 });
 /* Life Score: each check scores by timeliness - on-track 100, due soon 70,
@@ -1588,6 +1766,7 @@ function renderLanding() {
       <div class="score-t">UpKeep Score</div>
       <div class="score-d">Across your ${vts.length} active checks - safety-critical ones count extra. Method in the footnote.</div>
       <div class="score-mot">${sc >= 80 ? '🏆 Elite upkeep - everything is humming.' : sc >= 60 ? '🌟 Well maintained - the top tier is close.' : sc >= 30 ? '📈 Real momentum - keep it rolling.' : sc > 0 ? '🌱 Every check you complete builds the habit.' : '👋 Tap a checklist below to knock out your first check.'}</div>
+      <button class="share-pill" id="shareBtn">📤 Share my score</button>
     </div>
   </div>`;
 
@@ -1612,8 +1791,9 @@ function renderLanding() {
     if (soon) parts.push('<span class="warn">🔔 ' + soon + ' due soon</span>');
     if (!od && !soon) parts.push(never ? never + ' not started' : '✅ all on track');
     parts.push('Score <b style="color:' + scoreColor(dsc) + '">' + dsc + '</b>');
+    const tint = { home:'#2a78d6', auto:'#eb6834', health:'#e87ba4', pets:'#1baf7a', admin:'#4a3aa7' }[d];
     return `<div class="land-card" data-d="${d}">
-      <div class="land-emoji">${e}</div>
+      <div class="land-emoji"${tint ? ` style="background:color-mix(in srgb, ${tint} 15%, var(--surface-2))"` : ''}>${e}</div>
       <div style="flex:1;min-width:0"><div class="land-t">${l}</div><div class="land-sub">${parts.join(' · ')}</div>
         <div class="prog"><div style="width:${dsc}%;background:${scoreColor(dsc)}"></div></div></div>
       <div class="land-arrow">›</div>
@@ -1636,17 +1816,6 @@ function renderLanding() {
     if (starters.length) weekHtml = `<div class="group-h" style="margin-top:20px"><h2>🎯 Good place to start</h2></div>` + starters.map(cardHTML).join('');
   }
 
-  /* Backup nudge */
-  let backupWarn = '';
-  const hasData = Object.keys(data.completions).length > 0;
-  if (hasData) {
-    if (!data.lastBackup) backupWarn = `<div class="backup-warn">⚠️ No backup yet - tap "Backup data" below so your history is safe.</div>`;
-    else {
-      const daysAgo = daysBetween(parseISO(data.lastBackup), parseISO(todayISO()));
-      if (daysAgo > 45) backupWarn = `<div class="backup-warn">⚠️ Last backup was ${daysAgo} days ago - tap "Backup data" below.</div>`;
-    }
-  }
-
   const hiddenN = (data.hidden || []).length;
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -1654,7 +1823,7 @@ function renderLanding() {
   $('landing').innerHTML =
     `<div class="greet">${greet}, ${esc((data.profile || {}).name || 'there')} ${gEmoji}</div>`
     + `<div class="tagline">Preventive maintenance for your whole life - small upkeep now, no big repairs later.</div>`
-    + scoreHtml + statsHtml + backupWarn + weekHtml
+    + scoreHtml + statsHtml + weekHtml
     + `<div class="group-h" style="margin-top:20px"><h2>Preventive Maintenance Checklists</h2></div>`
     + cardsHtml
     + `<div class="land-card add-card" id="addCheckBtn">＋ Add a custom check</div>`
@@ -1664,10 +1833,13 @@ function renderLanding() {
   document.querySelectorAll('#landing .card').forEach(el => el.onclick = () => openTask(el.dataset.id));
   $('addCheckBtn').onclick = () => openCustomForm(null);
   if (hiddenN) $('hiddenBtn').onclick = openHiddenManager;
+  $('shareBtn').onclick = shareScore;
 }
 function refreshViews() {
   renderAll();
   if ($('landing').style.display !== 'none') renderLanding();
+  if ($('notifView').style.display !== 'none') renderNotif();
+  updateNotifBadge();
 }
 $('backBtn').onclick = showLanding;
 $('searchBox').oninput = () => { searchQ = $('searchBox').value.trim().toLowerCase(); renderList(); };
@@ -1882,19 +2054,7 @@ function openHistory() {
     if (m) m.n++;
   }
   const max = Math.max(1, ...months.map(m => m.n));
-  const fit = allTasks().find(t => t.id === 'health-fitness');
-  let streak = 0;
-  if (fit) {
-    const target = fit.target || 4;
-    const ws = new Date(today); ws.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-    let cursor = new Date(ws);
-    if (weekCount(fit) >= target) streak++;
-    for (let k = 0; k < 104; k++) {
-      const start = new Date(cursor); start.setDate(cursor.getDate() - 7);
-      const n = (data.completions['health-fitness'] || []).filter(d => { const dt = parseISO(d); return dt >= start && dt < cursor; }).length;
-      if (n >= target) { streak++; cursor = start; } else break;
-    }
-  }
+  const streak = fitnessStreak();
   const started = vts.filter(t => taskStatus(t).key !== 'never');
   const onTrack = started.filter(t => taskStatus(t).key === 'ok').length;
   $('sheet').innerHTML = `
@@ -2153,6 +2313,7 @@ $('logoImg').src = 'data:image/png;base64,' + LOGO_B64;
 })();
 
 renderLanding();
+updateNotifBadge();
 
 /* Offline support: register the service worker when hosted */
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
